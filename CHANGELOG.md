@@ -1,7 +1,7 @@
-## [project-title] Changelog
+## WordPress on Azure Container Apps Changelog
 
 <a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
+# 1.2-alpha (2023-01-23)
 
 *Features*
 * ...
