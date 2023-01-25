@@ -49,15 +49,14 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
     ```
     azd login
     ```
-1. Verify that you are logged in by running the following command:
+1. Run to initilize the azure developer cli
 
     ```
-    az account show
+    azd init
     ```
-    take a note of the subscription id as you will need it later.
-1. Create a folder named ```.azure``` in the root of the project
-1. Create a folder in the ```.azure``` folder for the environment you want to deploy to. For example, ```dev``` or ```prod```
-1. Create a text file named ```.env``` in the environment folder you created in the previous step and inculde the following environment variables required for the deployment.
+    this will create a file named ```azure.yaml``` in the root of the project. This file contains the configuration for the deployment. It will also create a folder named ```.azure``` in the root of the project. This folder contains the deployment scripts and the environment variables for the deployment.
+1. Navigate to the  ```.azure``` folder and the folder corresponding to the environment you want to deploy to. For example, ```dev``` or ```prod``` depending on what you created during initialization.
+1. Open the text file named ```.env``` in the environment folder and make sure the following environment variables are added.
 
     ```
     AZD_PIPELINE_PROVIDER="github"
