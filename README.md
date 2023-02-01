@@ -39,6 +39,29 @@ In this application template, you'll learn how to and will be able to easily, qu
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free).  
+
+## Benefits of the solution
+
+Below are benefits and potential extension scenarios for the solution.
+
+1. The solution leverages Bicep as well as Github Actions to provide a single-click deployment of a fully functioning WordPress site following best practices.
+1. The solution is built using Azure Container Apps, which is a managed service that allows you to deploy containerized applications to Azure without having to manage the underlying infrastructure. 
+1. The solution uses Azure Database for MariaDB, which is also a fully managed database service that allows you to deploy a MariaDB server in Azure without having to manage the underlying infrastructure.
+1. The solution deployes Redis Cache to provide a high performance object cache for the application. This allows you to improve the performance of the application.
+1. The solution uses Azure Key Vault to store secrets. This allows you to store and manage all the required secrets securely.
+1. The solution uses Azure Application Gateway to provide a single entry point to the application. This allows you to manage and control the application traffic and provide a single point of entry to the application.
+1. The solution uses Azure Networking to provide a secure network for the application. This allows you to manage the network traffic and provide a secure network for the application.
+1. The solution uses Azure Storage to persist state so that all wordpress changes are persistent across running instances.
+1. The solution uses Azure Log Analytics and Application insights to monitor the application. This allows you to monitor the application and troubleshoot any issues.
+
+Other potential extensions of this architecture are:
+
+1. Leverage Azure FrontDoor instead of Azure Application Gateway to enable the solution with CDN and allow for global distribution as well as caching content at the edge.
+1. Instead of using Docker Hub as the container image repository, deploy an Azure Container registry and manage and control the WordPress and Redis images internally.
+1. Leverage multiple Azure Container Apps revisions to deploy the solution in a blue/green deployment model.
+1. Leverage Azure DevOps instead of Github Actions to deploy the solution.
+
+
 ## Deployment
 You can deploy this app template either using the Azure Developer CLI (azd) or the github pipeline provided.
 
