@@ -6,6 +6,8 @@ param includeBastion bool = true
 
 param appSnet object
 param infraSnet object
+param storageSnet object
+param mariaDbSnet object
 param bastionSnet object
 param agwSnet object
 
@@ -17,6 +19,16 @@ var appSnetConfig = {
 var infraSnetConfig = {
   name: 'infra-snet'
   properties: infraSnet
+}
+
+var storageSnetConfig = {
+  name: 'storage-snet'
+  properties: storageSnet
+}
+
+var mariaDbSnetConfig = {
+  name: 'mariadb-snet'
+  properties: mariaDbSnet
 }
 
 var bastionSnetConfig = {
@@ -32,6 +44,8 @@ var agwSnetConfig = {
 var fixedSubnets = [
   appSnetConfig
   infraSnetConfig
+  storageSnetConfig
+  mariaDbSnetConfig
   agwSnetConfig
 ]
 
@@ -56,5 +70,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-06-01' = {
 output vnetId string = vnet.id
 output appSnetId string = vnet.properties.subnets[0].id
 output infraSnetId string = vnet.properties.subnets[1].id
-output agwSnetId string = vnet.properties.subnets[2].id
-output bastionSnetId string = includeBastion ? vnet.properties.subnets[3].id : ''
+output storageSnetId string = vnet.properties.subnets[2].id
+output mariaDbSnetId string = vnet.properties.subnets[3].id
+output agwSnetId string = vnet.properties.subnets[4].id
+output bastionSnetId string = includeBastion ? vnet.properties.subnets[5].id : ''

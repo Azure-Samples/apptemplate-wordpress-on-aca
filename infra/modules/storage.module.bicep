@@ -29,7 +29,7 @@ param keyVaultName string
 
 var fileshareName = 'fileshare'
 
-resource storage 'Microsoft.Storage/storageAccounts@2019-06-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: toLower(replace(name, '-', ''))
   location: location
   kind: kind
@@ -40,8 +40,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2019-06-01' = {
     displayName: name
   })
   properties: {
+    publicNetworkAccess: 'disabled'
     accessTier: 'Hot'
-    supportsHttpsTrafficOnly: true
+    supportsHttpsTrafficOnly: true 
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Deny'
