@@ -7,3 +7,5 @@ infra:
     module: ""
 pipeline:
     provider: ""
+metadata:
+  template: apptemplate-wordpress-on-ACA@0.0.1-beta
