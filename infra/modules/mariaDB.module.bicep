@@ -21,7 +21,7 @@ resource mySQL 'Microsoft.DBforMariaDB/servers@2018-06-01' = if (!useFlexibleSer
   }
   properties: {
     minimalTlsVersion: 'TLSEnforcementDisabled'
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Disabled'
     sslEnforcement: 'Disabled'
     storageProfile: {
       backupRetentionDays: 7
@@ -35,23 +35,6 @@ resource mySQL 'Microsoft.DBforMariaDB/servers@2018-06-01' = if (!useFlexibleSer
     administratorLoginPassword: dbPassword
   }
 }
-
-// resource infraSnetFirewallRules 'Microsoft.DBforMariaDB/servers/virtualNetworkRules@2018-06-01' = if (!useFlexibleServer) {
-//   name: 'infrase'
-//   parent: mySQL
-//   properties: {
-//     ignoreMissingVnetServiceEndpoint: false
-//     virtualNetworkSubnetId: infraSnetId
-//   }
-// }
-// resource appSnetFirewallRules 'Microsoft.DBforMariaDB/servers/virtualNetworkRules@2018-06-01' = if (!useFlexibleServer) {
-//   name: 'appse'
-//   parent: mySQL
-//   properties: {
-//     ignoreMissingVnetServiceEndpoint: false
-//     virtualNetworkSubnetId: appSnetId
-//   }
-// }
 
 resource wordpressdb 'Microsoft.DBforMariaDB/servers/databases@2018-06-01' = if (!useFlexibleServer) {
   name: 'wordpress'

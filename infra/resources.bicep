@@ -78,16 +78,6 @@ module storage 'modules/storage.module.bicep' = {
     secretNames: secretNames
     keyVaultName: resourceNames.keyVault
     tags: tags
-    // virtualNetworkRules: [
-    //   {
-    //     id: network.outputs.infraSnetId
-    //     action: 'Allow'
-    //   }
-    //   {
-    //     id: network.outputs.appSnetId
-    //     action: 'Allow'
-    //   }
-    // ]
   }
 }
 
@@ -121,8 +111,6 @@ module mariaDB 'modules/mariaDB.module.bicep' = {
     dbPassword: mariaDBPassword
     location: location
     serverName: resourceNames.mariadb
-    // infraSnetId: network.outputs.infraSnetId
-    // appSnetId: network.outputs.appSnetId
     tags: tags
     administratorLogin: mariaDBAdmin
     useFlexibleServer: false
@@ -256,7 +244,6 @@ module agw 'applicationGateway.bicep' = {
     name: resourceNames.applicationGateway
     location: location
     subnetId: network.outputs.agwSnetId
-    //backendPool: wordpressapp.outputs.loadBalancerIP
     backendFqdn: wordpressapp.outputs.webFqdn
     appGatewayFQDN: wordpressFqdn
     keyVaultName: resourceNames.keyVault
