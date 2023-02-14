@@ -10,6 +10,7 @@ param privateDnsZoneId string
   'sqlServer'   // Microsoft.Sql/servers
   'mysqlServer'
   'postgresqlServer'
+  'mariadbServer'
   'blob'
   'file'
   'queue'
@@ -23,7 +24,7 @@ param subResource string
 var privateLinkConnectionName = 'prvlnk-${name}'
 var privateDnsZoneConfigName = 'prvZoneConfig-${name}'
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-05-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
   name: name
   location: location
   tags: tags

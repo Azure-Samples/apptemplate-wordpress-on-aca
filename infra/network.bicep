@@ -40,6 +40,20 @@ module vnet 'modules/vnet.module.bicep' = {
         }
       ]
     }
+    storageSnet:{
+      addressPrefix: isProd ? '10.0.4.0/27' : '10.0.4.0/27'
+      networkSecurityGroup: {
+        id: storageNsg.id
+      }
+      privateEndpointNetworkPolicies: 'Enabled'       
+    }
+    mariaDbSnet:{
+      addressPrefix: isProd ? '10.0.5.0/27' : '10.0.5.0/27'
+      networkSecurityGroup: {
+        id: mariaDbNsg.id
+      }
+      privateEndpointNetworkPolicies: 'Enabled'        
+    }    
     bastionSnet: {
       addressPrefix: isProd ? '10.0.0.0/25' : '10.0.0.0/25'
       networkSecurityGroup: {
@@ -62,6 +76,49 @@ module bastion 'modules/bastion.module.bicep' = {
     location: location
     tags: tags
     subnetId: vnet.outputs.bastionSnetId
+  }
+}
+
+resource storageNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
+  name: 'storage-${naming.networkSecurityGroup.name}'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'HTTPS'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 300
+          direction: 'Inbound'
+        }
+      }
+    ]
+  }
+}
+resource mariaDbNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
+  name: 'postgressql-${naming.networkSecurityGroup.name}'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'MARIADB'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '3306'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 300
+          direction: 'Inbound'
+        }
+      }
+    ]
   }
 }
 
@@ -268,4 +325,6 @@ resource agwNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
 output vnetId string = vnet.outputs.vnetId
 output appSnetId string = vnet.outputs.appSnetId
 output infraSnetId string = vnet.outputs.infraSnetId
+output storageSnetId string = vnet.outputs.storageSnetId
+output mariaDbSnetId string = vnet.outputs.mariaDbSnetId
 output agwSnetId string = vnet.outputs.agwSnetId

@@ -78,17 +78,30 @@ module storage 'modules/storage.module.bicep' = {
     secretNames: secretNames
     keyVaultName: resourceNames.keyVault
     tags: tags
-    virtualNetworkRules: [
-      {
-        id: network.outputs.infraSnetId
-        action: 'Allow'
-      }
-      {
-        id: network.outputs.appSnetId
-        action: 'Allow'
-      }
-    ]
   }
+}
+
+module storagePrivateDnsZone 'modules/privateDnsZone.module.bicep'={
+  name: 'storagePrivateDnsZone-deployment'
+  params: {
+    #disable-next-line no-hardcoded-env-urls
+    name: 'privatelink.file.core.windows.net'
+    vnetIds: [
+      network.outputs.vnetId
+    ] 
+  }
+}
+module storagePrivateEndpoint 'modules/privateEndpoint.module.bicep' = {
+  name: 'storagePrivateEndpoint-deployment'
+  params: {
+    location: location
+    name: 'pe-${resourceNames.storageAccount}'
+    tags: tags
+    privateDnsZoneId: storagePrivateDnsZone.outputs.id
+    privateLinkServiceId: storage.outputs.id
+    subnetId: network.outputs.storageSnetId
+    subResource: 'file'
+  }  
 }
 
 //3. Database
@@ -98,12 +111,32 @@ module mariaDB 'modules/mariaDB.module.bicep' = {
     dbPassword: mariaDBPassword
     location: location
     serverName: resourceNames.mariadb
-    infraSnetId: network.outputs.infraSnetId
-    appSnetId: network.outputs.appSnetId
     tags: tags
     administratorLogin: mariaDBAdmin
     useFlexibleServer: false
   }
+}
+
+module mariaDbPrivateDnsZone 'modules/privateDnsZone.module.bicep'={
+  name: 'mariaDbPrivateDnsZone-deployment'
+  params: {
+    name: 'privatelink.mariadb.database.azure.com'
+    vnetIds: [
+      network.outputs.vnetId
+    ] 
+  }
+}
+module mariaDbPrivateEndpoint 'modules/privateEndpoint.module.bicep' = {
+  name: 'mariaDbPrivateEndpoint-deployment'
+  params: {
+    location: location
+    name: 'pe-${resourceNames.mariadb}'
+    tags: tags
+    privateDnsZoneId: mariaDbPrivateDnsZone.outputs.id
+    privateLinkServiceId: mariaDB.outputs.id
+    subnetId: network.outputs.mariaDbSnetId
+    subResource: 'mariadbServer'
+  }  
 }
 
 //4. Keyvault
@@ -135,7 +168,8 @@ module keyVault 'modules/keyvault.module.bicep' ={
 }
 
 resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (useCertificate) {
-  name: '${resourceNames.keyVault}/${secretNames.certificateKeyName}'
+  parent: vault
+  name: secretNames.certificateKeyName
   dependsOn: [
     keyVault
   ]
@@ -189,13 +223,9 @@ module envdnszone 'modules/privateDnsZone.module.bicep' = {
     ]
     aRecords: [
       {
-        name: wordpressapp.outputs.webFqdn
+        name: '*'
         ipv4Address: wordpressapp.outputs.loadBalancerIP
       }
-      (deployWithRedis)?{
-        name: wordpressapp.outputs.redisFqdn
-        ipv4Address: wordpressapp.outputs.loadBalancerIP
-      }: {}
     ]
     tags: tags
     registrationEnabled: false
@@ -214,7 +244,6 @@ module agw 'applicationGateway.bicep' = {
     name: resourceNames.applicationGateway
     location: location
     subnetId: network.outputs.agwSnetId
-    //backendPool: wordpressapp.outputs.loadBalancerIP
     backendFqdn: wordpressapp.outputs.webFqdn
     appGatewayFQDN: wordpressFqdn
     keyVaultName: resourceNames.keyVault
