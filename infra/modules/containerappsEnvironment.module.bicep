@@ -8,6 +8,7 @@ param location string
 param sku string = 'Consumption'
 param logAnalytics object
 param infraSnetId string
+param appSubnetId string
 param storageAccountName string
 @secure()
 param storageAccountKey string
@@ -32,10 +33,8 @@ resource containerEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
     }
     vnetConfiguration: {
       infrastructureSubnetId: infraSnetId
+      runtimeSubnetId: appSubnetId
       internal: true
-      outboundSettings:{
-        outBoundType: 'LoadBalancer'
-      }
     }
     zoneRedundant: false
   }

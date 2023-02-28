@@ -3,6 +3,7 @@ param tags object = {}
 param containerAppName string
 param wordpressFqdn string
 param infraSnetId string
+param appSnetId string
 param logAnalytics object 
 param storageAccountName string 
 @secure()
@@ -26,6 +27,7 @@ module environment 'modules/containerappsEnvironment.module.bicep' = {
   params: {
     tags: tags
     infraSnetId: infraSnetId
+    appSubnetId: appSnetId
     location: location
     logAnalytics: logAnalytics
     storageAccountKey: storageAccountKey
