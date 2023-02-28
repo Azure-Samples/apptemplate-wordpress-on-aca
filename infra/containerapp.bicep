@@ -14,8 +14,6 @@ param dbUser string
 param dbPassword string
 param deployWithRedis bool = false
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
-@secure()
-param redisPassword string = ''
 
 var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
