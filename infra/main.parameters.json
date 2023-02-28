@@ -10,30 +10,6 @@
       },
       "principalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
-      },
-      "mariaDBPassword": {
-        "value": "${AZURE_MARIADB_PASSWORD}"
-      },
-      "fqdn": {
-        "value": "${AZURE_FQDN}"
-      },
-      "applicationName": {
-        "value": "${AZURE_APPLICATION_NAME}"
-      },
-      "useCertificate":{
-        "value": false
-      },
-      "deployJumpHost":{
-        "value": true
-      },
-      "adminUsername": {
-        "value": "${AZURE_ADMIN_USERNAME}"
-      },
-      "adminPassword": {
-        "value": "${AZURE_ADMIN_PASSWORD}"
-      },
-      "deployWithRedis":{
-        "value": true
       }
     }
   }
