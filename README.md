@@ -73,32 +73,44 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
     ```
     azd login
     ```
-1. Run to initilize the azure developer cli
+1. Initilize the azure developer cli by running the following command:
 
     ```
     azd init
     ```
-    this will create a file named ```azure.yaml``` in the root of the project. This file contains the configuration for the deployment. It will also create a folder named ```.azure``` in the root of the project. This folder contains the deployment scripts and the environment variables for the deployment.
-1. Navigate to the  ```.azure``` folder and the folder corresponding to the environment you want to deploy to. For example, ```dev``` or ```prod``` depending on what you created during initialization.
-1. Open the text file named ```.env``` in the environment folder and make sure the following environment variables are added.
+    Durring the process you will be asked to provide the 
+    - environmentName: The name of the environment. This will be used as a prefix for all the resources created by the deployment. e.g. prod, dev, test.
+    - subscriptionId: The id of the subscription where the resources will be created.
+    - location: The location where the resources will be created.
+
+        ![](assets/azdinit.png)
+
+    Once the command has finished 
+    
+    - A directory called .azure is created.
+    - Within the .azure directory, a directory is created: <environment_name>.
+    - Within the \.azure\<your environment_name> directory, a file named .env is created.
+    - The .env file contains information such as the values you supplied:
+        - Environment name
+        - Location
+        - Azure subscription
+    
+    A file named azure.yaml is created in the root of your project.
+    > **Note:** The file is already in the repository.
+
+1. Deploy the ifrastructure by running the following command:
 
     ```
-    AZD_PIPELINE_PROVIDER="github"
-    AZURE_ADMIN_PASSWORD="<THE JUMPHOST PASSWORD>"
-    AZURE_ADMIN_USERNAME="<THE JUMPHOST USERNAME>"
-    AZURE_APPLICATION_NAME="<AN APPLICATION NAME>"
-    AZURE_ENV_NAME="prod"
-    AZURE_FQDN="<THE FQDN OF THE SITE>"
-    AZURE_LOCATION="<AN AZURE DC REGION>"
-    AZURE_MARIADB_PASSWORD="<THE MARIADB PASSWORD>"
-    AZURE_PRINCIPAL_ID=""
-    AZURE_SUBSCRIPTION_ID="<YOUR AZURE SUBSCRIPTION ID>"
-    resourceGroupName="<THE RESOURCE GROUP NAME>"
-    ```
+    azd up
+    ``` 
+    This will start the Azure infrastructure provisioning process. Durring this process you will be asked to provide the following information:
+    - mariaDBPassword: The password for the MariaDB server.
+    - fqdn: The FQDN of the WordPress site e.g. http://mywordpress.com
+    - applicationName: The name of the application. This will be used as a prefix for all the resources created by the deployment.
+    - adminUsername: The username for the jumphost VM.
+    - adminPassword: The password for the jumphost VM.
+    - deployWithRedis: Whether to deploy the solution with a Redis container or not.
 
-    > **Note:** The ```AZURE_PRINCIPAL_ID``` is the service principal id that will be used for the deployment. Since in this deployment method your user account is used you can leave this blank.
-
-1. Run ```azd provision``` to deploy the app template
 
 ### Using Github Actions
 1. Fork the repository

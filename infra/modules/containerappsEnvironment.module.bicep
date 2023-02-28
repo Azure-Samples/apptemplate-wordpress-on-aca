@@ -15,7 +15,7 @@ param storageShareName string
 
 var containerEnvName = 'app-container-env'
 
-resource containerEnvironment 'Microsoft.App/managedEnvironments@2022-06-01-preview' = {
+resource containerEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
   name: containerEnvName
   location: location
   tags: tags
