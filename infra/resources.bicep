@@ -200,8 +200,7 @@ module wordpressapp 'containerapp.bicep' = {
     location: location    
     containerAppName: resourceNames.containerAppName
     wordpressFqdn: wordpressFqdn
-    infraSnetId: network.outputs.infraSnetId 
-    appSnetId: network.outputs.appSnetId
+    infraSnetId: network.outputs.infraSnetId
     logAnalytics: logAnalytics.outputs.logAnalytics
     storageAccountName: resourceNames.storageAccount
     storageAccountKey: vault.getSecret(secretNames.storageKey)
