@@ -118,13 +118,6 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
           name: 'redis-host'
           value: 'localhost'
         }
-        (!empty(redisPassword))? {
-          name: 'redis-pass'
-          value: redisPassword
-        } : { 
-          name: 'redis-pass'
-          value: ''
-        }
       ]
     }
     environmentId: environment.outputs.containerEnvId
@@ -164,7 +157,7 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
             }
             { 
               name: 'WP_REDIS_PASSWORD'
-              secretRef: 'redis-pass'
+              value: ''
             }            
           ]
           image: wordpressImage
