@@ -22,7 +22,7 @@ module privateDnsZoneLinks 'privateDnsZoneLink.module.bicep' = if (!empty(vnetId
 }
 
 resource dnsRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = [for (aRecord, i) in aRecords: {
-  name: '${name}/${aRecord.name}'
+  name: '${zone}/${aRecord.name}'
   properties: {
     ttl: 60
     aRecords: [
