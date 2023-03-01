@@ -1,17 +1,18 @@
 param name string
+param zone string
 param tags object = {}
 param registrationEnabled bool = false
 param vnetIds array
 param aRecords array = []
 
 resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: name
+  name: zone
   location: 'Global'
   tags: tags  
 }
 
 module privateDnsZoneLinks 'privateDnsZoneLink.module.bicep' = if (!empty(vnetIds)) {
-  name: 'PrvDnsZoneVnetLink'  
+  name: take('PDZLink-${name}', 64)  
   params: {
     privateDnsZoneName: privateDnsZone.name
     vnetIds: vnetIds

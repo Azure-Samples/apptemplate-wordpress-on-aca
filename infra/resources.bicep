@@ -84,8 +84,9 @@ module storage 'modules/storage.module.bicep' = {
 module storagePrivateDnsZone 'modules/privateDnsZone.module.bicep'={
   name: 'storagePrivateDnsZone-deployment'
   params: {
+    name: 'stgprivatednszone'
     #disable-next-line no-hardcoded-env-urls
-    name: 'privatelink.file.core.windows.net'
+    zone: 'privatelink.file.core.windows.net'
     vnetIds: [
       network.outputs.vnetId
     ] 
@@ -120,7 +121,8 @@ module mariaDB 'modules/mariaDB.module.bicep' = {
 module mariaDbPrivateDnsZone 'modules/privateDnsZone.module.bicep'={
   name: 'mariaDbPrivateDnsZone-deployment'
   params: {
-    name: 'privatelink.mariadb.database.azure.com'
+    name: 'mariadbprivatednszone'
+    zone: 'privatelink.mariadb.database.azure.com'
     vnetIds: [
       network.outputs.vnetId
     ] 
@@ -217,7 +219,8 @@ module wordpressapp 'containerapp.bicep' = {
 module envdnszone 'modules/privateDnsZone.module.bicep' = {
   name: 'envdnszone-deployment'
   params: {
-    name: wordpressapp.outputs.envSuffix
+    name: 'appenvdnszone'
+    zone: wordpressapp.outputs.envSuffix
     vnetIds: [
       network.outputs.vnetId
     ]
