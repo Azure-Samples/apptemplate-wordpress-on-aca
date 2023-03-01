@@ -1,108 +1,58 @@
 targetScope = 'subscription'
 
-// =========== //
-// Parameters //
-// =========== //
+// ======================== //
+// Parameters with defaults //
+// ======================== //
 @description('Azure region where the resources will be deployed in')
 @allowed([
+  'australiaeast' 
+  'brazilsouth' 
+  'canadacentral'
+  'centralus'
+  'eastasia'
   'eastus'
   'eastus2'
-  'southcentralus'
-  'westus2'
-  'westus3'
-  'australiaeast'
-  'southeastasia'
-  'northeurope'
-  'swedencentral'
-  'uksouth'
-  'westeurope'
-  'centralus'
-  'southafricanorth'
-  'centralindia'
-  'eastasia'
-  'japaneast'
-  'koreacentral'
-  'canadacentral'
   'francecentral'
   'germanywestcentral'
-  'norwayeast'
-  'brazilsouth'
-  'eastus2euap'
-  'centralusstage'
-  'eastusstage'
-  'eastus2stage'
-  'northcentralusstage'
-  'southcentralusstage'
-  'westusstage'
-  'westus2stage'
-  'asia'
-  'asiapacific'
-  'australia'
-  'brazil'
-  'canada'
-  'europe'
-  'france'
-  'germany'
-  'india'
-  'japan'
-  'korea'
-  'norway'
-  'southafrica'
-  'switzerland'
-  'uae'
-  'uk'
-  'unitedstates'
-  'unitedstateseuap'
-  'eastasiastage'
-  'southeastasiastage'
+  'japaneast'
+  'koreacentral'
   'northcentralus'
-  'westus'
-  'jioindiawest'
+  'northeurope'
+  'norwayeast'
+  'southafricanorth'
+  'southcentralus'
   'switzerlandnorth'
   'uaenorth'
-  'centraluseuap'
-  'westcentralus'
-  'southafricawest'
-  'australiacentral'
-  'australiacentral2'
-  'australiasoutheast'
-  'japanwest'
-  'jioindiacentral'
-  'koreasouth'
-  'southindia'
-  'westindia'
-  'canadaeast'
-  'francesouth'
-  'germanynorth'
-  'norwaywest'
-  'switzerlandwest'
-  'ukwest'
-  'uaecentral'
-  'brazilsoutheast'
-])
+  'uksouth'
+  'westeurope'
+  'westus'
+  'westus3'])
 param location string
-@description('The fully qualified name of the application')
-param fqdn string
-param applicationName string
-@secure()
-param mariaDBPassword string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 param environmentName string = 'dev'
 @description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
 param useCertificate bool = false
 @description('Whether to deploy the jump host or not')
-param deployJumpHost bool = false
-@description('The username of the jump host admin user')
-param adminUsername string = 'hostadmin'
-@secure()
-@description('The password of the jump host admin user')
-param adminPassword string = ''
+param deployJumpHost bool = true
 param tags object = {}
-@description('Whether to deploy a redis cache for the wordpress instance or not.')
-param deployWithRedis bool = false
 @description('The image to use for the wordpress container. Default is kpantos/wordpress-alpine-php:latest')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
+
+// =================== //
+// Required Parameters //
+@description('The fully qualified name of the application')
+param fqdn string
+param applicationName string
+@secure()
+param mariaDBPassword string
+@description('The username of the jump host admin user')
+param adminUsername string
+@secure()
+@description('The password of the jump host admin user')
+param adminPassword string
+@description('Whether to deploy a redis cache for the wordpress instance or not.')
+param deployWithRedis bool
 
 var defaultTags = union({
   applicationName: applicationName
@@ -164,4 +114,15 @@ resource telemetrydeployment 'Microsoft.Resources/deployments@2021-04-01' = if (
     }
   }
 }
-output resourceGroupName string = rg.name
+
+//  Outputs
+output AZURE_RESOURCE_GROUP string = rg.name
+output AZD_PIPELINE_PROVIDER string = 'github'
+output AZURE_ENV_NAME string = environmentName
+output AZURE_LOCATION string = location
+output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
+
+output APP_ADMIN_USERNAME string = adminUsername
+output APP_APPLICATION_NAME string = applicationName
+output APP_FQDN string = fqdn
+output APP_DEPLOY_REDIS bool = deployWithRedis

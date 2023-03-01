@@ -14,8 +14,6 @@ param dbUser string
 param dbPassword string
 param deployWithRedis bool = false
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
-@secure()
-param redisPassword string = ''
 
 var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
@@ -59,8 +57,8 @@ resource redis 'Microsoft.App/containerApps@2022-06-01-preview' = if (deployWith
           name: 'redis'
           probes: []
           resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
+            cpu: json('1.0')
+            memory: '2.0Gi'
           }
           volumeMounts: []
         }
@@ -118,13 +116,6 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
           name: 'redis-host'
           value: 'localhost'
         }
-        (!empty(redisPassword))? {
-          name: 'redis-pass'
-          value: redisPassword
-        } : { 
-          name: 'redis-pass'
-          value: ''
-        }
       ]
     }
     environmentId: environment.outputs.containerEnvId
@@ -164,15 +155,15 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
             }
             { 
               name: 'WP_REDIS_PASSWORD'
-              secretRef: 'redis-pass'
+              value: ''
             }            
           ]
           image: wordpressImage
           name: 'wordpress'
           probes: []
           resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
+            cpu: json('2.0')
+            memory: '4.0Gi'
           }
           volumeMounts: [
             {

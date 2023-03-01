@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.13.1.58284",
-      "templateHash": "11578585082408476323"
+      "version": "0.14.85.62628",
+      "templateHash": "2969610055914790212"
     }
   },
   "parameters": {
@@ -101,7 +101,7 @@
       "type": "string"
     },
     "mariaDBPassword": {
-      "type": "secureString"
+      "type": "securestring"
     },
     "principalId": {
       "type": "string",
@@ -136,7 +136,7 @@
       }
     },
     "adminPassword": {
-      "type": "secureString",
+      "type": "securestring",
       "defaultValue": "",
       "metadata": {
         "description": "The password of the jump host admin user"
@@ -225,8 +225,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "17059479728976320287"
+              "version": "0.14.85.62628",
+              "templateHash": "17631766737190756488"
             }
           },
           "parameters": {
@@ -1312,8 +1312,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "5856527050629352494"
+              "version": "0.14.85.62628",
+              "templateHash": "724340186927733934"
             }
           },
           "parameters": {
@@ -1350,7 +1350,7 @@
               "defaultValue": "db_admin"
             },
             "mariaDBPassword": {
-              "type": "secureString"
+              "type": "securestring"
             },
             "useCertificate": {
               "type": "bool",
@@ -1371,7 +1371,7 @@
               "defaultValue": "hostadmin"
             },
             "adminPassword": {
-              "type": "secureString",
+              "type": "securestring",
               "defaultValue": ""
             },
             "principalId": {
@@ -1460,8 +1460,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "1116577448257972030"
+                      "version": "0.14.85.62628",
+                      "templateHash": "9021906226056739791"
                     }
                   },
                   "parameters": {
@@ -1484,6 +1484,52 @@
                     }
                   },
                   "resources": [
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('storage-{0}', parameters('naming').networkSecurityGroup.name)]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "securityRules": [
+                          {
+                            "name": "HTTPS",
+                            "properties": {
+                              "protocol": "Tcp",
+                              "sourcePortRange": "*",
+                              "destinationPortRange": "443",
+                              "sourceAddressPrefix": "*",
+                              "destinationAddressPrefix": "*",
+                              "access": "Allow",
+                              "priority": 300,
+                              "direction": "Inbound"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('postgressql-{0}', parameters('naming').networkSecurityGroup.name)]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "securityRules": [
+                          {
+                            "name": "MARIADB",
+                            "properties": {
+                              "protocol": "Tcp",
+                              "sourcePortRange": "*",
+                              "destinationPortRange": "3306",
+                              "sourceAddressPrefix": "VirtualNetwork",
+                              "destinationAddressPrefix": "*",
+                              "access": "Allow",
+                              "priority": 300,
+                              "direction": "Inbound"
+                            }
+                          }
+                        ]
+                      }
+                    },
                     {
                       "type": "Microsoft.Network/networkSecurityGroups",
                       "apiVersion": "2022-07-01",
@@ -1735,6 +1781,24 @@
                               ]
                             }
                           },
+                          "storageSnet": {
+                            "value": {
+                              "addressPrefix": "[if(variables('isProd'), '10.0.4.0/27', '10.0.4.0/27')]",
+                              "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('storage-{0}', parameters('naming').networkSecurityGroup.name))]"
+                              },
+                              "privateEndpointNetworkPolicies": "Enabled"
+                            }
+                          },
+                          "mariaDbSnet": {
+                            "value": {
+                              "addressPrefix": "[if(variables('isProd'), '10.0.5.0/27', '10.0.5.0/27')]",
+                              "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('postgressql-{0}', parameters('naming').networkSecurityGroup.name))]"
+                              },
+                              "privateEndpointNetworkPolicies": "Enabled"
+                            }
+                          },
                           "bastionSnet": {
                             "value": {
                               "addressPrefix": "[if(variables('isProd'), '10.0.0.0/25', '10.0.0.0/25')]",
@@ -1758,8 +1822,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.13.1.58284",
-                              "templateHash": "8853823015230603236"
+                              "version": "0.14.85.62628",
+                              "templateHash": "7656974992095561270"
                             }
                           },
                           "parameters": {
@@ -1787,6 +1851,12 @@
                             "infraSnet": {
                               "type": "object"
                             },
+                            "storageSnet": {
+                              "type": "object"
+                            },
+                            "mariaDbSnet": {
+                              "type": "object"
+                            },
                             "bastionSnet": {
                               "type": "object"
                             },
@@ -1803,6 +1873,14 @@
                               "name": "infra-snet",
                               "properties": "[parameters('infraSnet')]"
                             },
+                            "storageSnetConfig": {
+                              "name": "storage-snet",
+                              "properties": "[parameters('storageSnet')]"
+                            },
+                            "mariaDbSnetConfig": {
+                              "name": "mariadb-snet",
+                              "properties": "[parameters('mariaDbSnet')]"
+                            },
                             "bastionSnetConfig": {
                               "name": "AzureBastionSubnet",
                               "properties": "[parameters('bastionSnet')]"
@@ -1814,6 +1892,8 @@
                             "fixedSubnets": [
                               "[variables('appSnetConfig')]",
                               "[variables('infraSnetConfig')]",
+                              "[variables('storageSnetConfig')]",
+                              "[variables('mariaDbSnetConfig')]",
                               "[variables('agwSnetConfig')]"
                             ],
                             "allSubnets": "[if(parameters('includeBastion'), union(variables('fixedSubnets'), createArray(variables('bastionSnetConfig'))), variables('fixedSubnets'))]"
@@ -1848,20 +1928,30 @@
                               "type": "string",
                               "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[1].id]"
                             },
-                            "agwSnetId": {
+                            "storageSnetId": {
                               "type": "string",
                               "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[2].id]"
                             },
+                            "mariaDbSnetId": {
+                              "type": "string",
+                              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[3].id]"
+                            },
+                            "agwSnetId": {
+                              "type": "string",
+                              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[4].id]"
+                            },
                             "bastionSnetId": {
                               "type": "string",
-                              "value": "[if(parameters('includeBastion'), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[3].id, '')]"
+                              "value": "[if(parameters('includeBastion'), reference(resourceId('Microsoft.Network/virtualNetworks', parameters('name')), '2020-06-01').subnets[5].id, '')]"
                             }
                           }
                         }
                       },
                       "dependsOn": [
                         "[resourceId('Microsoft.Network/networkSecurityGroups', format('agw-{0}', parameters('naming').networkSecurityGroup.name))]",
-                        "[resourceId('Microsoft.Network/networkSecurityGroups', format('bastion-{0}', parameters('naming').networkSecurityGroup.name))]"
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', format('bastion-{0}', parameters('naming').networkSecurityGroup.name))]",
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', format('postgressql-{0}', parameters('naming').networkSecurityGroup.name))]",
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', format('storage-{0}', parameters('naming').networkSecurityGroup.name))]"
                       ]
                     },
                     {
@@ -1893,8 +1983,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.13.1.58284",
-                              "templateHash": "7214913979802278449"
+                              "version": "0.14.85.62628",
+                              "templateHash": "8199552591855328769"
                             }
                           },
                           "parameters": {
@@ -1979,6 +2069,14 @@
                       "type": "string",
                       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtualNetwork-deployment'), '2020-10-01').outputs.infraSnetId.value]"
                     },
+                    "storageSnetId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtualNetwork-deployment'), '2020-10-01').outputs.storageSnetId.value]"
+                    },
+                    "mariaDbSnetId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtualNetwork-deployment'), '2020-10-01').outputs.mariaDbSnetId.value]"
+                    },
                     "agwSnetId": {
                       "type": "string",
                       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtualNetwork-deployment'), '2020-10-01').outputs.agwSnetId.value]"
@@ -2013,8 +2111,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "14827082722030018406"
+                      "version": "0.14.85.62628",
+                      "templateHash": "8398298623497808619"
                     }
                   },
                   "parameters": {
@@ -2119,18 +2217,6 @@
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
-                  },
-                  "virtualNetworkRules": {
-                    "value": [
-                      {
-                        "id": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.infraSnetId.value]",
-                        "action": "Allow"
-                      },
-                      {
-                        "id": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.appSnetId.value]",
-                        "action": "Allow"
-                      }
-                    ]
                   }
                 },
                 "template": {
@@ -2139,8 +2225,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "1346460285623141059"
+                      "version": "0.14.85.62628",
+                      "templateHash": "15890163947148813358"
                     }
                   },
                   "parameters": {
@@ -2201,7 +2287,7 @@
                   "resources": [
                     {
                       "type": "Microsoft.Storage/storageAccounts",
-                      "apiVersion": "2019-06-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[toLower(replace(parameters('name'), '-', ''))]",
                       "location": "[parameters('location')]",
                       "kind": "[parameters('kind')]",
@@ -2210,6 +2296,7 @@
                       },
                       "tags": "[union(parameters('tags'), createObject('displayName', parameters('name')))]",
                       "properties": {
+                        "publicNetworkAccess": "disabled",
                         "accessTier": "Hot",
                         "supportsHttpsTrafficOnly": true,
                         "networkAcls": {
@@ -2236,7 +2323,7 @@
                       "apiVersion": "2022-07-01",
                       "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('secretNames').storageKey)]",
                       "properties": {
-                        "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2019-06-01').keys[0].value]"
+                        "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2022-09-01').keys[0].value]"
                       },
                       "dependsOn": [
                         "[resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', '')))]"
@@ -2247,7 +2334,7 @@
                       "apiVersion": "2019-09-01",
                       "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('secretNames').connectionString)]",
                       "properties": {
-                        "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}', toLower(replace(parameters('name'), '-', '')), listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2019-06-01').keys[0].value)]"
+                        "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}', toLower(replace(parameters('name'), '-', '')), listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2022-09-01').keys[0].value)]"
                       },
                       "dependsOn": [
                         "[resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', '')))]"
@@ -2265,7 +2352,7 @@
                     },
                     "primaryEndpoints": {
                       "type": "object",
-                      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2019-06-01').primaryEndpoints]"
+                      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', toLower(replace(parameters('name'), '-', ''))), '2022-09-01').primaryEndpoints]"
                     },
                     "fileshareName": {
                       "type": "string",
@@ -2275,8 +2362,320 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'keyVault-deployment')]",
+                "[resourceId('Microsoft.Resources/deployments', 'keyVault-deployment')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "storagePrivateDnsZone-deployment",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "privatelink.file.core.windows.net"
+                  },
+                  "vnetIds": {
+                    "value": [
+                      "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.vnetId.value]"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "8259100071050067622"
+                    }
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "registrationEnabled": {
+                      "type": "bool",
+                      "defaultValue": false
+                    },
+                    "vnetIds": {
+                      "type": "array"
+                    },
+                    "aRecords": {
+                      "type": "array",
+                      "defaultValue": []
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateDnsZones",
+                      "apiVersion": "2020-06-01",
+                      "name": "[parameters('name')]",
+                      "location": "Global",
+                      "tags": "[parameters('tags')]"
+                    },
+                    {
+                      "copy": {
+                        "name": "dnsRecord",
+                        "count": "[length(parameters('aRecords'))]"
+                      },
+                      "type": "Microsoft.Network/privateDnsZones/A",
+                      "apiVersion": "2020-06-01",
+                      "name": "[format('{0}/{1}', parameters('name'), parameters('aRecords')[copyIndex()].name)]",
+                      "properties": {
+                        "ttl": 60,
+                        "aRecords": [
+                          {
+                            "ipv4Address": "[parameters('aRecords')[copyIndex()].ipv4Address]"
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                      ]
+                    },
+                    {
+                      "condition": "[not(empty(parameters('vnetIds')))]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2020-10-01",
+                      "name": "PrvDnsZoneVnetLink",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "privateDnsZoneName": {
+                            "value": "[parameters('name')]"
+                          },
+                          "vnetIds": {
+                            "value": "[parameters('vnetIds')]"
+                          },
+                          "registrationEnabled": {
+                            "value": "[parameters('registrationEnabled')]"
+                          },
+                          "tags": {
+                            "value": "[parameters('tags')]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.14.85.62628",
+                              "templateHash": "3896655033286473165"
+                            }
+                          },
+                          "parameters": {
+                            "privateDnsZoneName": {
+                              "type": "string"
+                            },
+                            "tags": {
+                              "type": "object",
+                              "defaultValue": {}
+                            },
+                            "registrationEnabled": {
+                              "type": "bool",
+                              "defaultValue": false
+                            },
+                            "vnetIds": {
+                              "type": "array"
+                            }
+                          },
+                          "resources": [
+                            {
+                              "copy": {
+                                "name": "privateDnsZoneLinks",
+                                "count": "[length(parameters('vnetIds'))]"
+                              },
+                              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+                              "apiVersion": "2020-06-01",
+                              "name": "[format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), copyIndex())]",
+                              "location": "Global",
+                              "tags": "[parameters('tags')]",
+                              "properties": {
+                                "registrationEnabled": "[parameters('registrationEnabled')]",
+                                "virtualNetwork": {
+                                  "id": "[parameters('vnetIds')[copyIndex()]]"
+                                }
+                              }
+                            }
+                          ],
+                          "outputs": {
+                            "ids": {
+                              "type": "array",
+                              "copy": {
+                                "count": "[length(range(0, length(parameters('vnetIds'))))]",
+                                "input": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', split(format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), range(0, length(parameters('vnetIds')))[copyIndex()]), '/')[0], split(format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), range(0, length(parameters('vnetIds')))[copyIndex()]), '/')[1])]"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                      ]
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                    },
+                    "linkIds": {
+                      "type": "array",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'PrvDnsZoneVnetLink'), '2020-10-01').outputs.ids.value]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'vnet-deployment')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "storagePrivateEndpoint-deployment",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "name": {
+                    "value": "[format('pe-{0}', variables('resourceNames').storageAccount)]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "privateDnsZoneId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storagePrivateDnsZone-deployment'), '2020-10-01').outputs.id.value]"
+                  },
+                  "privateLinkServiceId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage-deployment'), '2020-10-01').outputs.id.value]"
+                  },
+                  "subnetId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.storageSnetId.value]"
+                  },
+                  "subResource": {
+                    "value": "file"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "17247170339218693056"
+                    }
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "subnetId": {
+                      "type": "string"
+                    },
+                    "privateLinkServiceId": {
+                      "type": "string"
+                    },
+                    "privateDnsZoneId": {
+                      "type": "string"
+                    },
+                    "subResource": {
+                      "type": "string",
+                      "allowedValues": [
+                        "sites",
+                        "sqlServer",
+                        "mysqlServer",
+                        "postgresqlServer",
+                        "mariadbServer",
+                        "blob",
+                        "file",
+                        "queue",
+                        "redisCache",
+                        "namespace",
+                        "Sql",
+                        "vault"
+                      ]
+                    }
+                  },
+                  "variables": {
+                    "privateLinkConnectionName": "[format('prvlnk-{0}', parameters('name'))]",
+                    "privateDnsZoneConfigName": "[format('prvZoneConfig-{0}', parameters('name'))]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateEndpoints",
+                      "apiVersion": "2022-07-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "subnet": {
+                          "id": "[parameters('subnetId')]"
+                        },
+                        "privateLinkServiceConnections": [
+                          {
+                            "name": "[variables('privateLinkConnectionName')]",
+                            "properties": {
+                              "privateLinkServiceId": "[parameters('privateLinkServiceId')]",
+                              "groupIds": [
+                                "[parameters('subResource')]"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                      "apiVersion": "2022-05-01",
+                      "name": "[format('{0}/dnsgroupname', parameters('name'))]",
+                      "properties": {
+                        "privateDnsZoneConfigs": [
+                          {
+                            "name": "[variables('privateDnsZoneConfigName')]",
+                            "properties": {
+                              "privateDnsZoneId": "[parameters('privateDnsZoneId')]"
+                            }
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateEndpoints', parameters('name'))]"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'vnet-deployment')]",
+                "[resourceId('Microsoft.Resources/deployments', 'storage-deployment')]",
+                "[resourceId('Microsoft.Resources/deployments', 'storagePrivateDnsZone-deployment')]"
               ]
             },
             {
@@ -2298,12 +2697,6 @@
                   "serverName": {
                     "value": "[variables('resourceNames').mariadb]"
                   },
-                  "infraSnetId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.infraSnetId.value]"
-                  },
-                  "appSnetId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.appSnetId.value]"
-                  },
                   "tags": {
                     "value": "[parameters('tags')]"
                   },
@@ -2320,8 +2713,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "9273047708141704716"
+                      "version": "0.14.85.62628",
+                      "templateHash": "10988924681700962287"
                     }
                   },
                   "parameters": {
@@ -2339,14 +2732,8 @@
                       "type": "string",
                       "defaultValue": "dbadmin"
                     },
-                    "infraSnetId": {
-                      "type": "string"
-                    },
-                    "appSnetId": {
-                      "type": "string"
-                    },
                     "dbPassword": {
-                      "type": "secureString"
+                      "type": "securestring"
                     },
                     "useFlexibleServer": {
                       "type": "bool",
@@ -2370,7 +2757,7 @@
                       },
                       "properties": {
                         "minimalTlsVersion": "TLSEnforcementDisabled",
-                        "publicNetworkAccess": "Enabled",
+                        "publicNetworkAccess": "Disabled",
                         "sslEnforcement": "Disabled",
                         "storageProfile": {
                           "backupRetentionDays": 7,
@@ -2383,32 +2770,6 @@
                         "administratorLogin": "[parameters('administratorLogin')]",
                         "administratorLoginPassword": "[parameters('dbPassword')]"
                       }
-                    },
-                    {
-                      "condition": "[not(parameters('useFlexibleServer'))]",
-                      "type": "Microsoft.DBforMariaDB/servers/virtualNetworkRules",
-                      "apiVersion": "2018-06-01",
-                      "name": "[format('{0}/{1}', parameters('serverName'), 'infrase')]",
-                      "properties": {
-                        "ignoreMissingVnetServiceEndpoint": false,
-                        "virtualNetworkSubnetId": "[parameters('infraSnetId')]"
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.DBforMariaDB/servers', parameters('serverName'))]"
-                      ]
-                    },
-                    {
-                      "condition": "[not(parameters('useFlexibleServer'))]",
-                      "type": "Microsoft.DBforMariaDB/servers/virtualNetworkRules",
-                      "apiVersion": "2018-06-01",
-                      "name": "[format('{0}/{1}', parameters('serverName'), 'appse')]",
-                      "properties": {
-                        "ignoreMissingVnetServiceEndpoint": false,
-                        "virtualNetworkSubnetId": "[parameters('appSnetId')]"
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.DBforMariaDB/servers', parameters('serverName'))]"
-                      ]
                     },
                     {
                       "condition": "[not(parameters('useFlexibleServer'))]",
@@ -2469,8 +2830,318 @@
                     }
                   }
                 }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "mariaDbPrivateDnsZone-deployment",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "privatelink.mariadb.database.azure.com"
+                  },
+                  "vnetIds": {
+                    "value": [
+                      "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.vnetId.value]"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "8259100071050067622"
+                    }
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "registrationEnabled": {
+                      "type": "bool",
+                      "defaultValue": false
+                    },
+                    "vnetIds": {
+                      "type": "array"
+                    },
+                    "aRecords": {
+                      "type": "array",
+                      "defaultValue": []
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateDnsZones",
+                      "apiVersion": "2020-06-01",
+                      "name": "[parameters('name')]",
+                      "location": "Global",
+                      "tags": "[parameters('tags')]"
+                    },
+                    {
+                      "copy": {
+                        "name": "dnsRecord",
+                        "count": "[length(parameters('aRecords'))]"
+                      },
+                      "type": "Microsoft.Network/privateDnsZones/A",
+                      "apiVersion": "2020-06-01",
+                      "name": "[format('{0}/{1}', parameters('name'), parameters('aRecords')[copyIndex()].name)]",
+                      "properties": {
+                        "ttl": 60,
+                        "aRecords": [
+                          {
+                            "ipv4Address": "[parameters('aRecords')[copyIndex()].ipv4Address]"
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                      ]
+                    },
+                    {
+                      "condition": "[not(empty(parameters('vnetIds')))]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2020-10-01",
+                      "name": "PrvDnsZoneVnetLink",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "privateDnsZoneName": {
+                            "value": "[parameters('name')]"
+                          },
+                          "vnetIds": {
+                            "value": "[parameters('vnetIds')]"
+                          },
+                          "registrationEnabled": {
+                            "value": "[parameters('registrationEnabled')]"
+                          },
+                          "tags": {
+                            "value": "[parameters('tags')]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.14.85.62628",
+                              "templateHash": "3896655033286473165"
+                            }
+                          },
+                          "parameters": {
+                            "privateDnsZoneName": {
+                              "type": "string"
+                            },
+                            "tags": {
+                              "type": "object",
+                              "defaultValue": {}
+                            },
+                            "registrationEnabled": {
+                              "type": "bool",
+                              "defaultValue": false
+                            },
+                            "vnetIds": {
+                              "type": "array"
+                            }
+                          },
+                          "resources": [
+                            {
+                              "copy": {
+                                "name": "privateDnsZoneLinks",
+                                "count": "[length(parameters('vnetIds'))]"
+                              },
+                              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+                              "apiVersion": "2020-06-01",
+                              "name": "[format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), copyIndex())]",
+                              "location": "Global",
+                              "tags": "[parameters('tags')]",
+                              "properties": {
+                                "registrationEnabled": "[parameters('registrationEnabled')]",
+                                "virtualNetwork": {
+                                  "id": "[parameters('vnetIds')[copyIndex()]]"
+                                }
+                              }
+                            }
+                          ],
+                          "outputs": {
+                            "ids": {
+                              "type": "array",
+                              "copy": {
+                                "count": "[length(range(0, length(parameters('vnetIds'))))]",
+                                "input": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', split(format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), range(0, length(parameters('vnetIds')))[copyIndex()]), '/')[0], split(format('{0}/{1}-link-{2}', parameters('privateDnsZoneName'), parameters('privateDnsZoneName'), range(0, length(parameters('vnetIds')))[copyIndex()]), '/')[1])]"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                      ]
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/privateDnsZones', parameters('name'))]"
+                    },
+                    "linkIds": {
+                      "type": "array",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'PrvDnsZoneVnetLink'), '2020-10-01').outputs.ids.value]"
+                    }
+                  }
+                }
               },
               "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'vnet-deployment')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "mariaDbPrivateEndpoint-deployment",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "name": {
+                    "value": "[format('pe-{0}', variables('resourceNames').mariadb)]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "privateDnsZoneId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'mariaDbPrivateDnsZone-deployment'), '2020-10-01').outputs.id.value]"
+                  },
+                  "privateLinkServiceId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'mariaDB-deployment'), '2020-10-01').outputs.id.value]"
+                  },
+                  "subnetId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vnet-deployment'), '2020-10-01').outputs.mariaDbSnetId.value]"
+                  },
+                  "subResource": {
+                    "value": "mariadbServer"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "17247170339218693056"
+                    }
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "subnetId": {
+                      "type": "string"
+                    },
+                    "privateLinkServiceId": {
+                      "type": "string"
+                    },
+                    "privateDnsZoneId": {
+                      "type": "string"
+                    },
+                    "subResource": {
+                      "type": "string",
+                      "allowedValues": [
+                        "sites",
+                        "sqlServer",
+                        "mysqlServer",
+                        "postgresqlServer",
+                        "mariadbServer",
+                        "blob",
+                        "file",
+                        "queue",
+                        "redisCache",
+                        "namespace",
+                        "Sql",
+                        "vault"
+                      ]
+                    }
+                  },
+                  "variables": {
+                    "privateLinkConnectionName": "[format('prvlnk-{0}', parameters('name'))]",
+                    "privateDnsZoneConfigName": "[format('prvZoneConfig-{0}', parameters('name'))]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateEndpoints",
+                      "apiVersion": "2022-07-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "subnet": {
+                          "id": "[parameters('subnetId')]"
+                        },
+                        "privateLinkServiceConnections": [
+                          {
+                            "name": "[variables('privateLinkConnectionName')]",
+                            "properties": {
+                              "privateLinkServiceId": "[parameters('privateLinkServiceId')]",
+                              "groupIds": [
+                                "[parameters('subResource')]"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                      "apiVersion": "2022-05-01",
+                      "name": "[format('{0}/dnsgroupname', parameters('name'))]",
+                      "properties": {
+                        "privateDnsZoneConfigs": [
+                          {
+                            "name": "[variables('privateDnsZoneConfigName')]",
+                            "properties": {
+                              "privateDnsZoneId": "[parameters('privateDnsZoneId')]"
+                            }
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateEndpoints', parameters('name'))]"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'mariaDB-deployment')]",
+                "[resourceId('Microsoft.Resources/deployments', 'mariaDbPrivateDnsZone-deployment')]",
                 "[resourceId('Microsoft.Resources/deployments', 'vnet-deployment')]"
               ]
             },
@@ -2512,8 +3183,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "17325577829982081784"
+                      "version": "0.14.85.62628",
+                      "templateHash": "15534049598371655336"
                     }
                   },
                   "parameters": {
@@ -2593,8 +3264,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.13.1.58284",
-                              "templateHash": "8306318704775181894"
+                              "version": "0.14.85.62628",
+                              "templateHash": "9237154809250255721"
                             }
                           },
                           "parameters": {
@@ -2730,8 +3401,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "6521962298184891226"
+                      "version": "0.14.85.62628",
+                      "templateHash": "3043694850356580641"
                     }
                   },
                   "parameters": {
@@ -2758,7 +3429,7 @@
                       "type": "string"
                     },
                     "storageAccountKey": {
-                      "type": "secureString"
+                      "type": "securestring"
                     },
                     "storageShareName": {
                       "type": "string"
@@ -2770,7 +3441,7 @@
                       "type": "string"
                     },
                     "dbPassword": {
-                      "type": "secureString"
+                      "type": "securestring"
                     },
                     "deployWithRedis": {
                       "type": "bool",
@@ -2779,6 +3450,10 @@
                     "wordpressImage": {
                       "type": "string",
                       "defaultValue": "kpantos/wordpress-alpine-php:latest"
+                    },
+                    "redisPassword": {
+                      "type": "securestring",
+                      "defaultValue": ""
                     }
                   },
                   "variables": {
@@ -2798,10 +3473,10 @@
                         "configuration": {
                           "activeRevisionsMode": "Single",
                           "ingress": {
-                            "allowInsecure": true,
                             "external": true,
                             "targetPort": 6379,
-                            "transport": "auto"
+                            "exposedPort": 6379,
+                            "transport": "tcp"
                           }
                         },
                         "environmentId": "[reference(resourceId('Microsoft.Resources/deployments', 'containerAppEnv-deployement'), '2020-10-01').outputs.containerEnvId.value]",
@@ -2870,7 +3545,9 @@
                             {
                               "name": "wp-fqdn",
                               "value": "[parameters('wordpressFqdn')]"
-                            }
+                            },
+                            "[if(parameters('deployWithRedis'), createObject('name', 'redis-host', 'value', reference(resourceId('Microsoft.App/containerApps', format('{0}redis', parameters('containerAppName'))), '2022-06-01-preview').configuration.ingress.fqdn), createObject('name', 'redis-host', 'value', 'localhost'))]",
+                            "[if(not(empty(parameters('redisPassword'))), createObject('name', 'redis-pass', 'value', parameters('redisPassword')), createObject('name', 'redis-pass', 'value', ''))]"
                           ]
                         },
                         "environmentId": "[reference(resourceId('Microsoft.Resources/deployments', 'containerAppEnv-deployement'), '2020-10-01').outputs.containerEnvId.value]",
@@ -2903,6 +3580,14 @@
                                 {
                                   "name": "WP_FQDN",
                                   "secretRef": "wp-fqdn"
+                                },
+                                {
+                                  "name": "WP_REDIS_HOST",
+                                  "secretRef": "redis-host"
+                                },
+                                {
+                                  "name": "WP_REDIS_PASSWORD",
+                                  "secretRef": "redis-pass"
                                 }
                               ],
                               "image": "[parameters('wordpressImage')]",
@@ -2933,7 +3618,8 @@
                         }
                       },
                       "dependsOn": [
-                        "[resourceId('Microsoft.Resources/deployments', 'containerAppEnv-deployement')]"
+                        "[resourceId('Microsoft.Resources/deployments', 'containerAppEnv-deployement')]",
+                        "[resourceId('Microsoft.App/containerApps', format('{0}redis', parameters('containerAppName')))]"
                       ]
                     },
                     {
@@ -2974,8 +3660,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.13.1.58284",
-                              "templateHash": "13102430568640035995"
+                              "version": "0.14.85.62628",
+                              "templateHash": "17991889140544315802"
                             }
                           },
                           "parameters": {
@@ -3004,7 +3690,7 @@
                               "type": "string"
                             },
                             "storageAccountKey": {
-                              "type": "secureString"
+                              "type": "securestring"
                             },
                             "storageShareName": {
                               "type": "string"
@@ -3083,11 +3769,11 @@
                   "outputs": {
                     "webFqdn": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.App/containerApps', format('{0}web', parameters('containerAppName'))), '2022-06-01-preview').latestRevisionFqdn]"
+                      "value": "[reference(resourceId('Microsoft.App/containerApps', format('{0}web', parameters('containerAppName'))), '2022-06-01-preview').configuration.ingress.fqdn]"
                     },
                     "redisFqdn": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.App/containerApps', format('{0}redis', parameters('containerAppName'))), '2022-06-01-preview').latestRevisionFqdn]"
+                      "value": "[reference(resourceId('Microsoft.App/containerApps', format('{0}redis', parameters('containerAppName'))), '2022-06-01-preview').configuration.ingress.fqdn]"
                     },
                     "webLatestRevisionName": {
                       "type": "string",
@@ -3133,7 +3819,7 @@
                   "aRecords": {
                     "value": [
                       {
-                        "name": "[reference(resourceId('Microsoft.Resources/deployments', 'wordpressapp-deployment'), '2020-10-01').outputs.webLatestRevisionName.value]",
+                        "name": "*",
                         "ipv4Address": "[reference(resourceId('Microsoft.Resources/deployments', 'wordpressapp-deployment'), '2020-10-01').outputs.loadBalancerIP.value]"
                       }
                     ]
@@ -3142,7 +3828,7 @@
                     "value": "[parameters('tags')]"
                   },
                   "registrationEnabled": {
-                    "value": true
+                    "value": false
                   }
                 },
                 "template": {
@@ -3151,8 +3837,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "12708816245686812262"
+                      "version": "0.14.85.62628",
+                      "templateHash": "8259100071050067622"
                     }
                   },
                   "parameters": {
@@ -3233,8 +3919,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.13.1.58284",
-                              "templateHash": "5408004876119683759"
+                              "version": "0.14.85.62628",
+                              "templateHash": "3896655033286473165"
                             }
                           },
                           "parameters": {
@@ -3347,8 +4033,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "9618275193590126015"
+                      "version": "0.14.85.62628",
+                      "templateHash": "4476373143892216170"
                     }
                   },
                   "parameters": {
@@ -3673,8 +4359,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "13098376783973391966"
+                      "version": "0.14.85.62628",
+                      "templateHash": "6534868511760854053"
                     }
                   },
                   "parameters": {
@@ -3697,7 +4383,7 @@
                       "defaultValue": "hostadmin"
                     },
                     "adminPassword": {
-                      "type": "secureString",
+                      "type": "securestring",
                       "defaultValue": ""
                     }
                   },
@@ -3805,9 +4491,37 @@
     }
   ],
   "outputs": {
-    "resourceGroupName": {
+    "AZURE_RESOURCE_GROUP": {
       "type": "string",
       "value": "[format('rg-{0}-{1}', parameters('applicationName'), parameters('environmentName'))]"
+    },
+    "AZD_PIPELINE_PROVIDER": {
+      "type": "string",
+      "value": "github"
+    },
+    "AZURE_ADMIN_USERNAME": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    },
+    "AZURE_APPLICATION_NAME": {
+      "type": "string",
+      "value": "[parameters('applicationName')]"
+    },
+    "AZURE_ENV_NAME": {
+      "type": "string",
+      "value": "[parameters('environmentName')]"
+    },
+    "AZURE_FQDN": {
+      "type": "string",
+      "value": "[parameters('fqdn')]"
+    },
+    "AZURE_LOCATION": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "AZURE_SUBSCRIPTION_ID": {
+      "type": "string",
+      "value": "[subscription().subscriptionId]"
     }
   }
 }
