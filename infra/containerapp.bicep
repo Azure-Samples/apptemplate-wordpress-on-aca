@@ -57,8 +57,8 @@ resource redis 'Microsoft.App/containerApps@2022-06-01-preview' = if (deployWith
           name: 'redis'
           probes: []
           resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
+            cpu: json('1.0')
+            memory: '2.0Gi'
           }
           volumeMounts: []
         }
@@ -162,8 +162,8 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
           name: 'wordpress'
           probes: []
           resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
+            cpu: json('2.0')
+            memory: '4.0Gi'
           }
           volumeMounts: [
             {
