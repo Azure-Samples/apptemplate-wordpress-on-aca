@@ -67,13 +67,14 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
 
 ### Using Azure Developer CLI (azd)
 
-1. Clone this repository localy
+1. Install [Azure Developer CLI](https://aka.ms/azure-dev/install)
 1. Login to azure from your terminal. You can do this by running the following command:
 
     ```
     azd login
     ```
-1. Initilize the azure developer cli by running the following command:
+1. Create and navigate into an empty directory
+1. Clone the repository and initialize the app by running the following command:
 
     ```
     azd init
