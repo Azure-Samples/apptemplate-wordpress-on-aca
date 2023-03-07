@@ -101,7 +101,7 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
 1. Deploy the ifrastructure by running the following command:
 
     ```
-    azd up
+    azd provision
     ``` 
     This will start the Azure infrastructure provisioning process. Durring this process you will be asked to provide the following information:
     - mariaDBPassword: The password for the MariaDB server.
