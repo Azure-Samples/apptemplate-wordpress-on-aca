@@ -30,12 +30,12 @@ targetScope = 'subscription'
 param location string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
-param environmentName string = 'dev'
+param environmentName string
 @description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
 param useCertificate bool = false
 @description('Whether to deploy the jump host or not')
 param deployJumpHost bool = true
-param tags object = {}
+param tags object = { 'azd-env-name': environmentName }
 @description('The image to use for the wordpress container. Default is kpantos/wordpress-alpine-php:latest')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
@@ -56,11 +56,10 @@ param deployWithRedis bool
 
 var defaultTags = union({
   applicationName: applicationName
-  environment: environmentName
 }, tags)
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: 'rg-${applicationName}-${environmentName}'
+  name: 'rg-${applicationName}'
   location: location
   tags: defaultTags
 }
@@ -71,7 +70,6 @@ module naming 'modules/naming.module.bicep' = {
   params: {
     suffix: [
       applicationName
-      environmentName
     ]
     uniqueLength: 6
     uniqueSeed: rg.id
