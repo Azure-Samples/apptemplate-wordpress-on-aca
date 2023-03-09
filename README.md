@@ -77,7 +77,7 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
 1. Clone the repository and initialize the app by running the following command:
 
     ```
-    azd init
+    azd init -t apptemplate-wordpress-on-aca
     ```
     Durring the process you will be asked to provide the 
     - environmentName: The name of the environment. This will be used as a prefix for all the resources created by the deployment. e.g. prod, dev, test.
