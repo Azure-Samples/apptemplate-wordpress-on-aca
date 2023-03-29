@@ -20,15 +20,14 @@ jobs:
         run: azd login --client-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Azure Dev Provision
-        run: azd provision --no-prompt
+        run: azd provision --no-prompt 
         env:
           AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_MARIADB_PASSWORD: ${{ secrets.AZURE_MARIADB_PASSWORD}}
-          AZURE_FQDN: ${{ secrets.AZURE_FQDN}}
-          AZURE_APPLICATION_NAME: ${{ secrets.AZURE_APPLICATION_NAME}}
-          AZURE_USE_CERTIFICATE: false
-          AZURE_DEPLOY_JUMPHOST: true
-          AZURE_ADMIN_USERNAME: ${{ secrets.AZURE_ADMIN_USERNAME}}
-          AZURE_ADMIN_PASSWORD: ${{ secrets.AZURE_ADMIN_PASSWORD}}
+
+          mariaDBPassword: ${{ secrets.AZURE_MARIADB_PASSWORD}}
+          fqdn: ${{ secrets.AZURE_FQDN}}
+          applicationName: ${{ secrets.AZURE_APPLICATION_NAME}}
+          adminUsername: ${{ secrets.AZURE_ADMIN_USERNAME}}
+          adminPassword: ${{ secrets.AZURE_ADMIN_PASSWORD}}
