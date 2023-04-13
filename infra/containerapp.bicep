@@ -157,11 +157,11 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
               secretRef: 'wp-fqdn'
             }
             { 
-              name: 'WP_REDIS_HOST'
+              name: 'REDIS_HOST'
               secretRef: 'redis-host'
             }
             { 
-              name: 'WP_REDIS_PASSWORD'
+              name: 'REDIS_PASSWORD'
               value: 'redis-password'
             }
           ]

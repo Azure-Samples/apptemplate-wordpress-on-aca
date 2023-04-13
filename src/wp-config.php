@@ -29,8 +29,8 @@ $connectstr_dbusername = getenv('DB_USER');;
 $connectstr_dbpassword = getenv('DB_PASS');
 $fqdn = getenv('WP_FQDN');
 
-$redis_host = getenv('WP_REDIS_HOST');
-$redis_password = getenv('WP_REDIS_PASSWORD');
+$redis_host = getenv('REDIS_HOST');
+$redis_password = getenv('REDIS_PASSWORD');
 
 define('DB_NAME', $connectstr_dbname);
 
