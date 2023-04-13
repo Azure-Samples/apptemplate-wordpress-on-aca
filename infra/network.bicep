@@ -53,7 +53,11 @@ module vnet 'modules/vnet.module.bicep' = {
         id: mariaDbNsg.id
       }
       privateEndpointNetworkPolicies: 'Enabled'        
-    }    
+    }
+    redisSnet: {
+      addressPrefix: isProd ? '10.0.6.0/27' : '10.0.6.0/27'
+      privateEndpointNetworkPolicies: 'Enabled'
+    }
     bastionSnet: {
       addressPrefix: isProd ? '10.0.0.0/25' : '10.0.0.0/25'
       networkSecurityGroup: {
@@ -327,4 +331,5 @@ output appSnetId string = vnet.outputs.appSnetId
 output infraSnetId string = vnet.outputs.infraSnetId
 output storageSnetId string = vnet.outputs.storageSnetId
 output mariaDbSnetId string = vnet.outputs.mariaDbSnetId
+output redisSnetId string = vnet.outputs.redisSnetId
 output agwSnetId string = vnet.outputs.agwSnetId

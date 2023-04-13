@@ -99,7 +99,7 @@ define('DOMAIN_CURRENT_SITE', $fqdn);
 
 define('WP_REDIS_HOST', $redis_host);
 define('WP_REDIS_PORT', 6379);
-if ( !empty($redis_password) )
+if ( !empty($redis_password) && $redis_password != 'null' )
 	define('WP_REDIS_PASSWORD', $redis_password);
 define('WP_REDIS_TIMEOUT', 1 );
 define('WP_REDIS_READ_TIMEOUT', 1 );

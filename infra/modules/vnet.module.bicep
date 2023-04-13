@@ -8,6 +8,7 @@ param appSnet object
 param infraSnet object
 param storageSnet object
 param mariaDbSnet object
+param redisSnet object
 param bastionSnet object
 param agwSnet object
 
@@ -31,6 +32,11 @@ var mariaDbSnetConfig = {
   properties: mariaDbSnet
 }
 
+var redisSnetConfig = {
+  name: 'redis-snet'
+  properties: redisSnet
+}
+
 var bastionSnetConfig = {
   name: 'AzureBastionSubnet'
   properties: bastionSnet
@@ -46,6 +52,7 @@ var fixedSubnets = [
   infraSnetConfig
   storageSnetConfig
   mariaDbSnetConfig
+  redisSnetConfig
   agwSnetConfig
 ]
 
@@ -72,5 +79,6 @@ output appSnetId string = vnet.properties.subnets[0].id
 output infraSnetId string = vnet.properties.subnets[1].id
 output storageSnetId string = vnet.properties.subnets[2].id
 output mariaDbSnetId string = vnet.properties.subnets[3].id
-output agwSnetId string = vnet.properties.subnets[4].id
-output bastionSnetId string = includeBastion ? vnet.properties.subnets[5].id : ''
+output redisSnetId string = vnet.properties.subnets[4].id
+output agwSnetId string = vnet.properties.subnets[5].id
+output bastionSnetId string = includeBastion ? vnet.properties.subnets[6].id : ''
