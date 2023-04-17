@@ -12,12 +12,18 @@ param dbHost string
 param dbUser string
 @secure()
 param dbPassword string
-param deployWithRedis bool = false
+param redisDeploymentOption string = 'container'
+param redisManagedFqdn string = ''
+@secure()
+param redisManagedPassword string = ''
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
 var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
 var dbName = 'wordpress'
+
+var redisHostSecret = (redisDeploymentOption == 'container') ? redisContainer.properties.configuration.ingress.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : redisManagedFqdn
+var redisPassword = (redisDeploymentOption == 'managed') ? redisManagedPassword : 'null'
 
 module environment 'modules/containerappsEnvironment.module.bicep' = {
   name: 'containerAppEnv-deployement'
@@ -32,7 +38,7 @@ module environment 'modules/containerappsEnvironment.module.bicep' = {
   }
 }
 
-resource redis 'Microsoft.App/containerApps@2022-06-01-preview' = if (deployWithRedis) {
+resource redisContainer 'Microsoft.App/containerApps@2022-10-01' = if (redisDeploymentOption == 'container') {
   name: '${containerAppName}redis'
   location: location
   tags: tags
@@ -71,7 +77,7 @@ resource redis 'Microsoft.App/containerApps@2022-06-01-preview' = if (deployWith
   }
 }
 
-resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
+resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
   name: '${containerAppName}web'
   location: location
   tags: tags
@@ -109,12 +115,13 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
           name: 'wp-fqdn'
           value: wordpressFqdn
         }
-        (deployWithRedis) ? {
+        { 
           name: 'redis-host'
-          value: redis.properties.configuration.ingress.fqdn
-        } : { 
-          name: 'redis-host'
-          value: 'localhost'
+          value: redisHostSecret
+        }
+        { 
+          name: 'redis-password'
+          value: redisPassword
         }
       ]
     }
@@ -150,13 +157,13 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
               secretRef: 'wp-fqdn'
             }
             { 
-              name: 'WP_REDIS_HOST'
+              name: 'REDIS_HOST'
               secretRef: 'redis-host'
             }
             { 
-              name: 'WP_REDIS_PASSWORD'
-              value: ''
-            }            
+              name: 'REDIS_PASSWORD'
+              secretRef: 'redis-password'
+            }
           ]
           image: wordpressImage
           name: 'wordpress'
@@ -188,7 +195,7 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-06-01-preview' = {
 }
 
 output webFqdn string = wordpressApp.properties.configuration.ingress.fqdn
-output redisFqdn string = redis.properties.configuration.ingress.fqdn
+output redisFqdn string = (redisDeploymentOption == 'container') ? redisContainer.properties.configuration.ingress.fqdn : ''
 output webLatestRevisionName string = wordpressApp.properties.latestRevisionName
 output envSuffix string = environment.outputs.envSuffix
 output loadBalancerIP string = environment.outputs.loadBalancerIP

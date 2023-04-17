@@ -22,7 +22,8 @@ module privateDnsZoneLinks 'privateDnsZoneLink.module.bicep' = if (!empty(vnetId
 }
 
 resource dnsRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = [for (aRecord, i) in aRecords: {
-  name: '${zone}/${aRecord.name}'
+  parent: privateDnsZone
+  name: '${aRecord.name}'
   properties: {
     ttl: 60
     aRecords: [
@@ -31,9 +32,6 @@ resource dnsRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = [for (aRec
       }
     ]
   }
-  dependsOn: [
-    privateDnsZone
-  ]
 }]
 
 output id string = privateDnsZone.id

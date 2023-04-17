@@ -51,8 +51,13 @@ param adminUsername string
 @secure()
 @description('The password of the jump host admin user')
 param adminPassword string
-@description('Whether to deploy a redis cache for the wordpress instance or not.')
-param deployWithRedis bool
+
+@description('The redis cache deployment option. Valid values are: managed, container, local.')
+@allowed([
+  'managed' 
+  'container' 
+  'local'])
+param redisDeploymentOption string
 
 var defaultTags = union({
   applicationName: applicationName
@@ -91,7 +96,7 @@ module main 'resources.bicep' = {
     adminUsername: adminUsername
     adminPassword: adminPassword
     principalId: principalId
-    deployWithRedis: deployWithRedis
+    redisDeploymentOption: redisDeploymentOption
     wordpressImage: wordpressImage
   }
 }
@@ -123,4 +128,4 @@ output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
 output APP_ADMIN_USERNAME string = adminUsername
 output APP_APPLICATION_NAME string = applicationName
 output APP_FQDN string = fqdn
-output APP_DEPLOY_REDIS bool = deployWithRedis
+output APP_REDIS_DEPLOYMENT_OPTIONS string = redisDeploymentOption

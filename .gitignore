@@ -359,3 +359,5 @@ MigrationBackup/
 service.principal
 secrets.txt
 kpantos*
+
+*.old
