@@ -162,7 +162,7 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
             }
             { 
               name: 'REDIS_PASSWORD'
-              value: 'redis-password'
+              secretRef: 'redis-password'
             }
           ]
           image: wordpressImage
