@@ -155,32 +155,32 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
     + Under your repository name, click Settings. 
     + In the "Security" section of the sidebar, select Secrets. 
     + At the top of the page, click New repository secret
-    + Provide the secret name as AZURE_CLIENT_ID
-    + Add the clientId field of the service principal that was created in the previous step as the value.
-    + Repeat the above steps for the following secrets:
-        + AZURE_CLIENT_SECRET
-        + AZURE_TENANT_ID
+    + Provide the secret name as AZURE_CREDENTIALS
+    + Add the output of the az cli command from the previous step as the value for the secret.
    
 4. Repeat the above steps for the following secrets:
     + AZURE_ADMIN_PASSWORD _The password for the jumphost_
+    + AZURE_MARIADB_PASSWORD _The password for the MariaDB database_
+
+    You will need to provide the following values as repository secrets to be used by the GitHub Actions workflow.
+    ![Secrets](assets/github-secrets.png)
+
+4. Store the following values as GitHub Actions variables
+    + Under the repository settings, click on the 'Secrets' tab and add the following variables:
     + AZURE_ADMIN_USERNAME _The username for the jumphost_
     + AZURE_APPLICATION_NAME _The name of the application_
     + AZURE_ENV_NAME _The name of the environment e.g. prod_
     + AZURE_FQDN _The FQDN of the WordPress site e.g. http://mywordpress.com_
     + AZURE_LOCATION _The Azure DC region e.g. westeurope_
-    + AZURE_MARIADB_PASSWORD _The password for the MariaDB database_
-    + AZURE_SUBSCRIPTION_ID _The subscription id_
-    + AZURE_PRINCIPAL_ID _The service principal id_
-    
-    You will need to provide the following values as repository secrets to be used by the GitHub Actions workflow.
-    ![Secrets](assets/github-secrets.png)
+    + AZURE_REDIS_DEPLOYMENTOPTIONS _The deployment options for Redis e.g. managed, local, or container_
 
-> **Note:** The ```AZURE_PRINCIPAL_ID``` is the clientId field of the service principal that was created in the previous step.
+    You will need to provide the following values as repository secrets to be used by the GitHub Actions workflow.
+    ![Secrets](assets/github-variables.png)
 
 5. Execute the azure-dev.yml action workflow
 
     + Under your repository name, click Actions .
-    + In the left sidebar, click the workflow "azure-dev.yml".
+    + In the left sidebar, click the workflow "Wordpress Deployment".
     + Above the list of workflow runs, select Run workflow .
     + Use the Branch dropdown to select the workflow's main branch, Click Run workflow .
 
