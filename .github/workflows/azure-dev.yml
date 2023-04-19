@@ -45,7 +45,6 @@ jobs:
           template: ./infra/main.bicep
           parameters: environmentName=${{ secrets.AZURE_ENV_NAME }}, 
             location=${{ secrets.AZURE_LOCATION }}, 
-            subscriptionId=${{ secrets.AZURE_SUBSCRIPTION_ID }},
             fqdn=${{ secrets.AZURE_FQDN }},
             applicationName=${{ secrets.AZURE_APPLICATION_NAME }},
             mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
@@ -73,7 +72,6 @@ jobs:
               --template-file ./infra/main.bicep \
               --parameters environmentName=${{ secrets.AZURE_ENV_NAME }}, 
               --parameters location=${{ secrets.AZURE_LOCATION }}, 
-              --parameters subscriptionId=${{ secrets.AZURE_SUBSCRIPTION_ID }},
               --parameters fqdn=${{ secrets.AZURE_FQDN }},
               --parameters applicationName=${{ secrets.AZURE_APPLICATION_NAME }},
               --parameters mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
@@ -98,8 +96,7 @@ jobs:
           region: ${{ secrets.AZURE_LOCATION }}
           template: ./infra//main.bicep
           parameters: environmentName=${{ secrets.AZURE_ENV_NAME }}, 
-            location=${{ secrets.AZURE_LOCATION }}, 
-            subscriptionId=${{ secrets.AZURE_SUBSCRIPTION_ID }},
+            location=${{ secrets.AZURE_LOCATION }},
             fqdn=${{ secrets.AZURE_FQDN }},
             applicationName=${{ secrets.AZURE_APPLICATION_NAME }},
             mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
