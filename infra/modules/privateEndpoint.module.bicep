@@ -47,7 +47,8 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
 }
 
 resource privateDNSZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-05-01' = {
-  name: '${privateEndpoint.name}/dnsgroupname'
+  parent: privateEndpoint
+  name: 'dnsgroupname'
   properties: {
     privateDnsZoneConfigs: [
       {

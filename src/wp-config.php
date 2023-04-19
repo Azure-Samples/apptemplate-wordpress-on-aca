@@ -29,8 +29,8 @@ $connectstr_dbusername = getenv('DB_USER');;
 $connectstr_dbpassword = getenv('DB_PASS');
 $fqdn = getenv('WP_FQDN');
 
-$redis_host = getenv('WP_REDIS_HOST');
-$redis_password = getenv('WP_REDIS_PASSWORD');
+$redis_host = getenv('REDIS_HOST');
+$redis_password = getenv('REDIS_PASSWORD');
 
 define('DB_NAME', $connectstr_dbname);
 
@@ -99,7 +99,7 @@ define('DOMAIN_CURRENT_SITE', $fqdn);
 
 define('WP_REDIS_HOST', $redis_host);
 define('WP_REDIS_PORT', 6379);
-if ( !empty($redis_password) )
+if ( !empty($redis_password) && $redis_password != 'null' )
 	define('WP_REDIS_PASSWORD', $redis_password);
 define('WP_REDIS_TIMEOUT', 1 );
 define('WP_REDIS_READ_TIMEOUT', 1 );

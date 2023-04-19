@@ -21,8 +21,8 @@ param adminUsername string = 'hostadmin'
 param adminPassword string = ''
 @description('The principal ID of the service principal that will be deploying the resources. If not specified, the current user will be used.')
 param principalId string = ''
-@description('Whether to deploy a redis cache for the wordpress instance or not.')
-param deployWithRedis bool = false
+@description('The redis cache deployment option. Valid values are: managed, container, local.')
+param redisDeploymentOption string = 'container'
 @description('The wordpress container image to use.')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
@@ -141,6 +141,48 @@ module mariaDbPrivateEndpoint 'modules/privateEndpoint.module.bicep' = {
   }  
 }
 
+//4. Redis
+module redis 'modules/redis.module.bicep' = if (redisDeploymentOption == 'managed') {
+  name: 'redis-deployment'
+  params: {
+    location: location
+    name: resourceNames.redis
+    tags: tags
+    skuName: 'Premium'
+    skuFamily: 'P'
+    skuCapacity: 1
+    keyVaultName: vault.name
+    publicNetworkAccess: 'Disabled'
+    saveKeysToVault: (redisDeploymentOption == 'managed')
+    connStrKeyName: secretNames.redisConnectionString    
+    passwordKeyName: secretNames.redisPasswordName
+    primaryKeyKeyName: secretNames.redisPrimaryKeyKeyName
+  }
+}
+
+module redisPrivateDnsZone 'modules/privateDnsZone.module.bicep'= if (redisDeploymentOption == 'managed') {
+  name: 'redisPrivateDnsZone-deployment'
+  params: {
+    name: 'redisprivatednszone'
+    zone: 'privatelink.redis.cache.windows.net'
+    vnetIds: [
+      network.outputs.vnetId
+    ]
+  }
+}
+module redisPrivateEndpoint 'modules/privateEndpoint.module.bicep' = if (redisDeploymentOption == 'managed') {
+  name: 'redisPrivateEndpoint-deployment'
+  params: {
+    location: location
+    name: 'pe-${resourceNames.redis}'
+    tags: tags
+    privateDnsZoneId: (redisDeploymentOption == 'managed')? redisPrivateDnsZone.outputs.id : ''
+    privateLinkServiceId: (redisDeploymentOption == 'managed')? redis.outputs.id : ''
+    subnetId: network.outputs.redisSnetId
+    subResource: 'redisCache'
+  }
+}
+
 //4. Keyvault
 module keyVault 'modules/keyvault.module.bicep' ={
   name: 'keyVault-deployment'
@@ -210,7 +252,9 @@ module wordpressapp 'containerapp.bicep' = {
     dbHost: mariaDB.outputs.hostname
     dbUser: mariaDBAdmin
     dbPassword: vault.getSecret(secretNames.mariaDBPassword)
-    deployWithRedis: deployWithRedis
+    redisDeploymentOption: redisDeploymentOption
+    redisManagedFqdn: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? redis.outputs.redisHost : ''
+    redisManagedPassword: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? vault.getSecret(secretNames.redisPasswordName) : ''
     wordpressImage: wordpressImage
   }
 }

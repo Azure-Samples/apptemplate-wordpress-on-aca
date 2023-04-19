@@ -71,20 +71,14 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
 1. Login to azure from your terminal. You can do this by running the following command:
 
     ```
-    azd login
+    azd auth login
     ```
 1. Create and navigate into an empty directory
 1. Clone the repository and initialize the app by running the following command:
 
     ```
-    azd init
+    azd init -t apptemplate-wordpress-on-aca
     ```
-    Durring the process you will be asked to provide the 
-    - environmentName: The name of the environment. This will be used as a prefix for all the resources created by the deployment. e.g. prod, dev, test.
-    - subscriptionId: The id of the subscription where the resources will be created.
-    - location: The location where the resources will be created.
-
-        ![](assets/azdinit.png)
 
     Once the command has finished 
     
@@ -105,6 +99,8 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
     azd provision
     ``` 
     This will start the Azure infrastructure provisioning process. Durring this process you will be asked to provide the following information:
+    - subscriptionId: The id of the subscription where the resources will be created.
+    - location: The location where the resources will be created.
     - mariaDBPassword: The password for the MariaDB server.
     - fqdn: The FQDN of the WordPress site e.g. http://mywordpress.com
     - applicationName: The name of the application. This will be used as a prefix for all the resources created by the deployment.
@@ -112,6 +108,7 @@ You can deploy this app template either using the Azure Developer CLI (azd) or t
     - adminPassword: The password for the jumphost VM.
     - deployWithRedis: Whether to deploy the solution with a Redis container or not.
 
+        ![Deployment](assets/azd-provision.png)
 
 ### Using Github Actions
 1. Fork the repository
