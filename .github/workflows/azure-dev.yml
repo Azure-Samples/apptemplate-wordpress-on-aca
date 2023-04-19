@@ -43,13 +43,13 @@ jobs:
           scope: subscription
           region: ${{ vars.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: environmentName=${{ vars.AZURE_ENV_NAME }}, 
-            location=${{ vars.AZURE_LOCATION }}, 
-            fqdn=${{ vars.AZURE_FQDN }},
-            applicationName=${{ vars.AZURE_APPLICATION_NAME }},
-            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
-            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }},
-            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }},
+          parameters: environmentName=${{ vars.AZURE_ENV_NAME }} 
+            location=${{ vars.AZURE_LOCATION }} 
+            fqdn=${{ vars.AZURE_FQDN }} 
+            applicationName=${{ vars.AZURE_APPLICATION_NAME }} 
+            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} 
+            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} 
+            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} 
             redisDeploymentOption='managed'
           deploymentMode: Validate
 
@@ -70,13 +70,13 @@ jobs:
             az deployment sub what-if \
               --location ${{ vars.AZURE_LOCATION }} \
               --template-file ./infra/main.bicep \
-              --parameters environmentName=${{ vars.AZURE_ENV_NAME }}, 
-              --parameters location=${{ vars.AZURE_LOCATION }}, 
-              --parameters fqdn=${{ vars.AZURE_FQDN }},
-              --parameters applicationName=${{ vars.AZURE_APPLICATION_NAME }},
-              --parameters mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
-              --parameters adminUsername=${{ vars.AZURE_ADMIN_USERNAME }},
-              --parameters adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }},
+              --parameters environmentName=${{ vars.AZURE_ENV_NAME }} \
+              --parameters location=${{ vars.AZURE_LOCATION }} \
+              --parameters fqdn=${{ vars.AZURE_FQDN }} \
+              --parameters applicationName=${{ vars.AZURE_APPLICATION_NAME }} \
+              --parameters mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} \
+              --parameters adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} \
+              --parameters adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} \
               --parameters redisDeploymentOption='managed'
   deploy:
     runs-on: ubuntu-latest
@@ -95,12 +95,12 @@ jobs:
           scope: subscription
           region: ${{ secrets.AZURE_LOCATION }}
           template: ./infra//main.bicep
-          parameters: environmentName=${{ vars.AZURE_ENV_NAME }}, 
-            location=${{ vars.AZURE_LOCATION }}, 
-            fqdn=${{ vars.AZURE_FQDN }},
-            applicationName=${{ vars.AZURE_APPLICATION_NAME }},
-            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }},
-            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }},
-            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }},
+          parameters: environmentName=${{ vars.AZURE_ENV_NAME }}  
+            location=${{ vars.AZURE_LOCATION }} 
+            fqdn=${{ vars.AZURE_FQDN }} 
+            applicationName=${{ vars.AZURE_APPLICATION_NAME }} 
+            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} 
+            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} 
+            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} 
             redisDeploymentOption='managed'
           failOnStdErr: false
