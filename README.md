@@ -1,3 +1,23 @@
+---
+page_type: sample
+languages:
+- azdeveloper
+- bicep
+- shell
+- php
+products:
+- azure
+- azure-container-apps
+- azure-application-gateway
+- azure-key-vault
+- azure-monitor
+- azure-cache-for-redis
+urlFragment: apptemplate-wordpress-on-aca
+name: WordPress appplication template with Azure Container Apps (PHP)
+description: A blueprint to easily and quickly create and deploy your first scalable and secure WordPress site to Azure, leveraging Azure Container Apps with Azure Database for MariaDb with PHP.
+---
+<!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
+
 # WordPress appplication template
 
 [![.github/workflows/azure-dev.yml](https://github.com/kopantos/app-template-wordpress/actions/workflows/azure-dev.yml/badge.svg)](https://github.com/kopantos/app-template-wordpress/actions/workflows/azure-dev.yml)
