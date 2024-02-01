@@ -3,7 +3,6 @@ page_type: sample
 languages:
 - azdeveloper
 - bicep
-- shell
 - php
 products:
 - azure
@@ -11,7 +10,7 @@ products:
 - azure-application-gateway
 - azure-key-vault
 - azure-monitor
-- azure-cache-for-redis
+- azure-cache-redis
 urlFragment: apptemplate-wordpress-on-aca
 name: WordPress appplication template with Azure Container Apps (PHP)
 description: A blueprint to easily and quickly create and deploy your first scalable and secure WordPress site to Azure, leveraging Azure Container Apps with Azure Database for MariaDb with PHP.
