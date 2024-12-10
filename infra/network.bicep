@@ -10,84 +10,78 @@ var resourceNames = {
   vnet: naming.virtualNetwork.name
 }
 
-module vnet 'modules/vnet.module.bicep' = {
-  name: 'virtualNetwork-deployment'
+module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
+  name: 'vnet-deployment'
   params: {
     name: resourceNames.vnet
     location: location
     tags: tags
-    includeBastion: true
-    addressPrefix: isProd ? '10.0.0.0/16' : '10.0.0.0/16'
-    appSnet: {
-      addressPrefix: isProd ? '10.0.1.0/24' : '10.0.1.0/24'
-      serviceEndpoints: [
-        {
-          service: 'Microsoft.Storage'
-        }
-        {
-          service: 'Microsoft.Sql'
-        }
-      ]
-    }
-    infraSnet: {
-      addressPrefix: isProd ? '10.0.2.0/23' : '10.0.2.0/23'
-      serviceEndpoints: [
-        {
-          service: 'Microsoft.Storage'
-        }
-        {
-          service: 'Microsoft.Sql'
-        }
-      ]
-    }
-    storageSnet:{
-      addressPrefix: isProd ? '10.0.4.0/27' : '10.0.4.0/27'
-      networkSecurityGroup: {
-        id: storageNsg.id
+    addressPrefixes: isProd ? ['10.0.0.0/16'] : ['10.0.0.0/16']
+    subnets: [
+      {
+        name: 'appSnet'
+        addressPrefix: isProd ? '10.0.1.0/24' : '10.0.1.0/24'
+        serviceEndpoints: [
+          'Microsoft.Storage'
+          'Microsoft.Sql'
+        ]
       }
-      privateEndpointNetworkPolicies: 'Enabled'       
-    }
-    mariaDbSnet:{
-      addressPrefix: isProd ? '10.0.5.0/27' : '10.0.5.0/27'
-      networkSecurityGroup: {
-        id: mariaDbNsg.id
+      {
+        name: 'infraSnet'
+        addressPrefix: isProd ? '10.0.2.0/23' : '10.0.2.0/23'
+        serviceEndpoints: [
+          'Microsoft.Storage'
+          'Microsoft.Sql'
+        ]
       }
-      privateEndpointNetworkPolicies: 'Enabled'        
-    }
-    redisSnet: {
-      addressPrefix: isProd ? '10.0.6.0/27' : '10.0.6.0/27'
-      privateEndpointNetworkPolicies: 'Enabled'
-    }
-    bastionSnet: {
-      addressPrefix: isProd ? '10.0.0.0/25' : '10.0.0.0/25'
-      networkSecurityGroup: {
-        id: bastionNsg.id
+      {
+        name: 'storageSnet'
+        addressPrefix: isProd ? '10.0.4.0/27' : '10.0.4.0/27'
+        natGatewayResourceId: storageNsg.outputs.resourceId
+        privateEndpointNetworkPolicies: 'Enabled'
       }
-    }
-    agwSnet: {
-      addressPrefix: isProd ? '10.0.127.0/25' : '10.0.127.0/25'
-      networkSecurityGroup: {
-        id: agwNsg.id
-      } 
-    }
+      {
+        name: 'mariaDbSnet'
+        addressPrefix: isProd ? '10.0.5.0/27' : '10.0.5.0/27'
+        networkSecurityGroupResourceId: mariaDbNsg.outputs.resourceId
+        privateEndpointNetworkPolicies: 'Enabled'
+      }
+      {
+        name: 'redisSnet' 
+        addressPrefix: isProd ? '10.0.6.0/27' : '10.0.6.0/27'
+        privateEndpointNetworkPolicies: 'Enabled'
+      }
+      {
+        name: 'AzureBastionSubnet'
+        addressPrefix: isProd ? '10.0.0.0/25' : '10.0.0.0/25'
+        networkSecurityGroupResourceId: bastionNsg.outputs.resourceId
+      }
+      {
+        name: 'agwSnet'
+        addressPrefix: isProd ? '10.0.127.0/25' : '10.0.127.0/25'
+        networkSecurityGroupResourceId: agwNsg.outputs.resourceId
+      }
+    ]
   }
 }
 
-module bastion 'modules/bastion.module.bicep' = {
+module bastion 'br/public:avm/res/network/bastion-host:0.5.0' = {
   name: 'bastion-deployment'
   params: {
     name: resourceNames.bastion
     location: location
     tags: tags
-    subnetId: vnet.outputs.bastionSnetId
+    virtualNetworkResourceId: vnet.outputs.resourceId
   }
 }
 
-resource storageNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: 'storage-${naming.networkSecurityGroup.name}'
-  location: location
-  properties: {
-    securityRules: [
+module storageNsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
+  name: 'storageNsg-deployment'
+  params: {
+    location: location
+    tags: tags
+    name: 'storage-${naming.networkSecurityGroup.name}'
+    securityRules:[
       {
         name: 'HTTPS'
         properties: {
@@ -104,11 +98,14 @@ resource storageNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
     ]
   }
 }
-resource mariaDbNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: 'postgressql-${naming.networkSecurityGroup.name}'
-  location: location
-  properties: {
-    securityRules: [
+
+module mariaDbNsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
+  name: 'mariaDbNsg-deployment'
+  params: {
+    location: location
+    tags: tags
+    name: 'mariaDb-${naming.networkSecurityGroup.name}'
+    securityRules:[
       {
         name: 'MARIADB'
         properties: {
@@ -126,11 +123,13 @@ resource mariaDbNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   }
 }
 
-resource bastionNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: 'bastion-${naming.networkSecurityGroup.name}'
-  location: location
-  properties: {
-    securityRules: [
+module bastionNsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
+  name: 'bastionNsg-deployment'
+  params: {
+    location: location
+    tags: tags
+    name: 'bastion-${naming.networkSecurityGroup.name}'
+    securityRules:[
       {
         name: 'HTTPS'
         properties: {
@@ -252,11 +251,13 @@ resource bastionNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   }
 }
 
-resource agwNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: 'agw-${naming.networkSecurityGroup.name}'
-  location: location
-  properties: {
-    securityRules: [
+module agwNsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
+  name: 'agwNsg-deployment'
+  params: {
+    location: location
+    tags: tags
+    name: 'agw-${naming.networkSecurityGroup.name}'
+    securityRules:[
       {
         name: 'GWMANAGER'
         properties: {
@@ -326,10 +327,10 @@ resource agwNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   }
 }
 
-output vnetId string = vnet.outputs.vnetId
-output appSnetId string = vnet.outputs.appSnetId
-output infraSnetId string = vnet.outputs.infraSnetId
-output storageSnetId string = vnet.outputs.storageSnetId
-output mariaDbSnetId string = vnet.outputs.mariaDbSnetId
-output redisSnetId string = vnet.outputs.redisSnetId
-output agwSnetId string = vnet.outputs.agwSnetId
+output vnetResourceId string = vnet.outputs.resourceId
+output appSnetResourceId string = vnet.outputs.subnetResourceIds[0]
+output infraSnetResourceId string = vnet.outputs.subnetResourceIds[1]
+output storageSnetResourceId string = vnet.outputs.subnetResourceIds[2]
+output mariaDbSnetResourceId string = vnet.outputs.subnetResourceIds[3]
+output redisSnetResourceId string = vnet.outputs.subnetResourceIds[4]
+output agwSnetResourceId string = vnet.outputs.subnetResourceIds[6]

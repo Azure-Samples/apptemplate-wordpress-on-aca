@@ -63,10 +63,13 @@ var defaultTags = union({
   applicationName: applicationName
 }, tags)
 
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: 'rg-${applicationName}'
-  location: location
-  tags: defaultTags
+module rg 'br/public:avm/res/resources/resource-group:0.4.0'= {
+  name: 'ResourceGroupDeployment'
+  params: {
+    location: location
+    tags: defaultTags
+    name: 'rg-${applicationName}'
+  }
 }
 
 module naming 'modules/naming.module.bicep' = {
@@ -77,7 +80,7 @@ module naming 'modules/naming.module.bicep' = {
       applicationName
     ]
     uniqueLength: 6
-    uniqueSeed: rg.id
+    uniqueSeed: rg.outputs.resourceId
   }
 }
 
