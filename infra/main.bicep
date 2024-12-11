@@ -31,10 +31,10 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 param environmentName string
-@description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
-param useCertificate bool = false
+@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
+param base64certificateText string
 @description('Whether to deploy the jump host or not')
-param deployJumpHost bool = true
+param deployJumpHost bool
 param tags object = { 'azd-env-name': environmentName }
 @description('The image to use for the wordpress container. Default is kpantos/wordpress-alpine-php:latest')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
@@ -96,7 +96,7 @@ module main 'resources.bicep' = {
     applicationName: applicationName
     mariaDBPassword: mariaDBPassword
     wordpressFqdn: fqdn
-    useCertificate: useCertificate
+    base64certificateText: base64certificateText
     deployJumpHost: deployJumpHost
     adminUsername: adminUsername
     adminPassword: adminPassword

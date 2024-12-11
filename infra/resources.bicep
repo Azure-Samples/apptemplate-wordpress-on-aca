@@ -12,8 +12,8 @@ param location string
 param mariaDBAdmin string = 'db_admin'
 @secure()
 param mariaDBPassword string
-@description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
-param useCertificate bool = false
+@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
+param base64certificateText string
 @description('Whether to deploy the jump host or not')
 param deployJumpHost bool = false
 param adminUsername string = 'hostadmin'
@@ -26,8 +26,6 @@ param redisDeploymentOption string = 'container'
 @description('The wordpress container image to use.')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
-@description('The path to the base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
-var sslCertPath = 'cert/certificate.pfx'
 var resourceNames = {
   storageAccount: naming.storageAccount.nameUnique
   keyVault: naming.keyVault.name
@@ -261,13 +259,13 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   }
 }
 
-resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (useCertificate) {
+resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(base64certificateText)) {
   name: '${resourceNames.keyVault}/${secretNames.certificateKeyName}'
   dependsOn: [
     keyVault
   ]
   properties: {
-    value: loadFileAsBase64(sslCertPath)
+    value: base64certificateText
     contentType: 'application/x-pkcs12'
     attributes: {
       enabled: true
@@ -345,7 +343,7 @@ module agw 'applicationGateway.bicep' = {
     backendFqdn: wordpressapp.outputs.webFqdn
     appGatewayFQDN: wordpressFqdn
     keyVaultName: resourceNames.keyVault
-    certificateKeyName: (useCertificate)? secretNames.certificateKeyName : ''
+    certificateKeyName: (!empty(base64certificateText))? secretNames.certificateKeyName : ''
     logAnalyticsWorkspaceId: logAnalytics.outputs.resourceId
     tags: tags
   }
