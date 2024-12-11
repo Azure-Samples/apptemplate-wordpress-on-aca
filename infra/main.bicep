@@ -31,7 +31,7 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 param environmentName string
-@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
+@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of the Application Gateway service.')
 param base64certificateText string
 @description('Whether to deploy the jump host or not')
 param deployJumpHost bool
