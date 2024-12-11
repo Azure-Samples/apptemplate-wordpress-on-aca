@@ -63,17 +63,19 @@ var defaultTags = union({
   applicationName: applicationName
 }, tags)
 
+var rgName = 'rg-${applicationName}'
+
 module rg 'br/public:avm/res/resources/resource-group:0.4.0'= {
   name: 'ResourceGroupDeployment'
   params: {
     location: location
     tags: defaultTags
-    name: 'rg-${applicationName}'
+    name: rgName
   }
 }
 
 module naming 'modules/naming.module.bicep' = {
-  scope: resourceGroup(rg.name)
+  scope: resourceGroup(rgName)
   name: 'NamingDeployment'  
   params: {
     suffix: [
@@ -85,7 +87,7 @@ module naming 'modules/naming.module.bicep' = {
 }
 
 module main 'resources.bicep' = {
-  scope: resourceGroup(rg.name)
+  scope: resourceGroup(rgName)
   name: 'MainDeployment'
   params: {
     location: location
@@ -107,7 +109,8 @@ module main 'resources.bicep' = {
 //  Deployment Telemetry
 @description('Enable usage and telemetry feedback to Microsoft.')
 param enableTelemetry bool = true
-var telemetryId = '69ef933a-eff0-450b-8a46-331cf62e160f-wordpress-${location}'
+var telemetryId = '69ef933a-eff0-450b-8a46-331cf62e160f-wordpress'
+#disable-next-line no-deployments-resources
 resource telemetrydeployment 'Microsoft.Resources/deployments@2021-04-01' = if (enableTelemetry) {
   name: telemetryId
   location: location
@@ -122,7 +125,7 @@ resource telemetrydeployment 'Microsoft.Resources/deployments@2021-04-01' = if (
 }
 
 //  Outputs
-output AZURE_RESOURCE_GROUP string = rg.name
+output AZURE_RESOURCE_GROUP string = rg.outputs.name
 output AZD_PIPELINE_PROVIDER string = 'github'
 output AZURE_ENV_NAME string = environmentName
 output AZURE_LOCATION string = location

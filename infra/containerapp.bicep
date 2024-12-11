@@ -20,7 +20,7 @@ var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
 var dbName = 'wordpress'
 
-var redisHostSecret = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : redisManagedFqdn
+var redisHost = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : redisManagedFqdn
 var redisPassword = (redisDeploymentOption == 'managed') ? redisManagedPassword : 'null'
 var workloadProfileName = 'default'
 var envName = 'app-container-env'
@@ -83,6 +83,7 @@ module redisContainer 'br/public:avm/res/app/container-app:0.11.0'  = if (redisD
     ingressTransport: 'tcp'
     exposedPort: 6379
     scaleMinReplicas: 1
+    workloadProfileName: workloadProfileName
   }
 }
 
@@ -171,7 +172,7 @@ module wordpressApp 'br/public:avm/res/app/container-app:0.11.0' = {
         }
         { 
           name: 'redis-host'
-          value: redisHostSecret
+          value: redisHost
         }
         { 
           name: 'redis-password'
@@ -186,6 +187,7 @@ module wordpressApp 'br/public:avm/res/app/container-app:0.11.0' = {
     ingressTargetPort: 80
     ingressTransport: 'auto'
     scaleMinReplicas: 1
+    workloadProfileName: workloadProfileName
     volumes: [
       {
         name: volumename

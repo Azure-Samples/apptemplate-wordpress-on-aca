@@ -32,7 +32,7 @@ var resourceNames = {
   storageAccount: naming.storageAccount.nameUnique
   keyVault: naming.keyVault.name
   redis: naming.redisCache.name
-  mariadb: naming.mariadbDatabase.name
+  mariadb: '${applicationName}db'
   containerAppName: 'wordpress'
   applicationGateway: naming.applicationGateway.name
 }
@@ -46,12 +46,12 @@ var secretNames = {
   redisPasswordName: 'redisPassword'
 }
 var storagePrivateDnsZoneName = 'privatelink.file.core.windows.net'
-var mariadbPrivateDnsZoneName = 'mysql.database.azure.com'
-var storageShare = 'nfsfileshare'
+var mariadbPrivateDnsZoneName = 'privatelink.mysql.database.azure.com'
+var storageShare = 'smbfileshare'
 
 //1. Networking
 module network 'network.bicep' = {
-  name: 'vnet-deployment'
+  name: 'network-deployment'
   params: {
     location: location
     tags: tags
@@ -94,7 +94,7 @@ module storage 'br/public:avm/res/storage/storage-account:0.14.3' = {
     fileServices: {
       shares: [
         {
-          enabledProtocols: 'NFS'
+          enabledProtocols: 'SMB'
           name: storageShare
         }
       ]
@@ -118,7 +118,7 @@ module storage 'br/public:avm/res/storage/storage-account:0.14.3' = {
 module storagePrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = {
   name: 'storagePrivateDnsZone-deployment'
   params: {
-    location: location
+    location: 'global'
     name: storagePrivateDnsZoneName
     virtualNetworkLinks: [
       {
@@ -143,6 +143,21 @@ module mariadb 'br/public:avm/res/db-for-my-sql/flexible-server:0.4.1' = {
     storageAutoGrow: 'Enabled'
     delegatedSubnetResourceId: network.outputs.mariaDbSnetResourceId
     privateDnsZoneResourceId: mariaDbPrivateDnsZone.outputs.resourceId
+    databases: [
+      {
+        charset: 'utf8'
+        collation: 'utf8_general_ci'
+        name: 'wordpress'
+      }
+    ]
+  }
+}
+
+resource mariadbSecureConnection 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-12-30' = {
+  name: '${resourceNames.mariadb}/require_secure_transport'
+  properties: {
+    value: 'OFF'
+    source: 'user-override'
   }
 }
 
@@ -150,6 +165,7 @@ module mariaDbPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' 
   name: 'mariaDbPrivateDnsZone-deployment'
   params: {
     name: mariadbPrivateDnsZoneName
+    location: 'global'
     virtualNetworkLinks: [
       {
         virtualNetworkResourceId: network.outputs.vnetResourceId
@@ -186,7 +202,7 @@ module redis 'br/public:avm/res/cache/redis:0.8.0' = if (redisDeploymentOption =
 module redisPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = if (redisDeploymentOption == 'managed') {
   name: 'redisPrivateDnsZone-deployment'
   params: {
-    location: location
+    location: 'global'
     name: 'privatelink.redis.cache.windows.net'
     virtualNetworkLinks: [
       {
@@ -208,7 +224,7 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
     location: location
     sku: 'premium'
     tags: tags
-    secrets: [
+    secrets: (redisDeploymentOption == 'managed') ? [
       {
         name:secretNames.redisConnectionString
         value: '${resourceNames.redis}.redis.cache.windows.net,abortConnect=false,ssl=true,password=${existingRedis.listKeys().primaryKey}'
@@ -225,6 +241,11 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
         name: secretNames.mariaDBPassword
         value: mariaDBPassword
       }
+    ] :[
+      {
+        name: secretNames.mariaDBPassword
+        value: mariaDBPassword
+      }      
     ]
     accessPolicies: (!empty(principalId))? [
       {
@@ -264,8 +285,6 @@ module wordpressapp 'containerapp.bicep' = {
   dependsOn:[
     keyVault
     storage
-    mariadb
-    logAnalytics
   ]
   params: {
     tags: tags
@@ -273,7 +292,7 @@ module wordpressapp 'containerapp.bicep' = {
     containerAppName: resourceNames.containerAppName
     wordpressFqdn: wordpressFqdn
     infraSnetId: network.outputs.infraSnetResourceId
-    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
     storageAccountName: resourceNames.storageAccount
     storageShareName: storageShare
     dbHost: mariadb.outputs.fqdn
@@ -291,6 +310,7 @@ module envdnszone 'br/public:avm/res/network/private-dns-zone:0.6.0' = {
   name: 'envdnszone-deployment'
   params: {
     name: wordpressapp.outputs.envSuffix
+    location: 'global'
     virtualNetworkLinks: [
       {
         virtualNetworkResourceId: network.outputs.vnetResourceId
@@ -316,7 +336,6 @@ module agw 'applicationGateway.bicep' = {
   name: 'applicationGateway-deployment'
   dependsOn: [
     keyVault
-    wordpressapp
     envdnszone
   ]
   params: {
@@ -327,7 +346,7 @@ module agw 'applicationGateway.bicep' = {
     appGatewayFQDN: wordpressFqdn
     keyVaultName: resourceNames.keyVault
     certificateKeyName: (useCertificate)? secretNames.certificateKeyName : ''
-    logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceId: logAnalytics.outputs.resourceId
     tags: tags
   }
 }

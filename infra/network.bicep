@@ -33,11 +33,12 @@ module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
           'Microsoft.Storage'
           'Microsoft.Sql'
         ]
+        delegation: 'Microsoft.App/environments'
       }
       {
         name: 'storageSnet'
         addressPrefix: isProd ? '10.0.4.0/27' : '10.0.4.0/27'
-        natGatewayResourceId: storageNsg.outputs.resourceId
+        networkSecurityGroupResourceId: storageNsg.outputs.resourceId
         privateEndpointNetworkPolicies: 'Enabled'
       }
       {
@@ -45,6 +46,7 @@ module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
         addressPrefix: isProd ? '10.0.5.0/27' : '10.0.5.0/27'
         networkSecurityGroupResourceId: mariaDbNsg.outputs.resourceId
         privateEndpointNetworkPolicies: 'Enabled'
+        delegation: 'Microsoft.DBforMySQL/flexibleServers'
       }
       {
         name: 'redisSnet' 
