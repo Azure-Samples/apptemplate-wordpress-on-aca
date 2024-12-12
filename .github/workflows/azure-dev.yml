@@ -62,4 +62,4 @@ jobs:
         run: azd up --no-prompt
 
       - name: Tear Down Infrastructure
-        run: azd down --no-prompt --purge
+        run: azd down --no-prompt --force --purge
