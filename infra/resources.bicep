@@ -43,7 +43,7 @@ var secretNames = {
   redisPrimaryKeyKeyName: 'redisPrimaryKey'
   redisPasswordName: 'redisPassword'
 }
-var storagePrivateDnsZoneName = 'privatelink.file.core.windows.net'
+var storagePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
 var mariadbPrivateDnsZoneName = 'privatelink.mysql.database.azure.com'
 var storageShare = 'smbfileshare'
 
@@ -266,7 +266,8 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
 }
 
 resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(base64certificateText)) {
-  name: '${resourceNames.keyVault}/${secretNames.certificateKeyName}'
+  parent: vault
+  name: secretNames.certificateKeyName
   dependsOn: [
     keyVault
   ]
@@ -283,6 +284,9 @@ resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!emp
 //Get a reference to key vault
 resource vault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
   name: resourceNames.keyVault
+  dependsOn: [
+    keyVault
+  ]
 }
 module wordpressapp 'containerapp.bicep' = {
   name: 'wordpressapp-deployment'
@@ -358,7 +362,6 @@ module agw 'applicationGateway.bicep' = {
 module jumphost 'jumphost.bicep' = if (deployJumpHost) {
   name: 'jumphost-deployment'
   params: {
-    naming: naming
     subnetId: network.outputs.appSnetResourceId
     location: location
     tags: tags

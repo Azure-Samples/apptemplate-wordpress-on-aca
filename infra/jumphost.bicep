@@ -1,4 +1,3 @@
-param naming object
 param location string = resourceGroup().location
 param tags object = {}
 param subnetId string
