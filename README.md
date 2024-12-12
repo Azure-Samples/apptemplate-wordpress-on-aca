@@ -41,7 +41,7 @@ In this application template, you'll learn how to and will be able to easily, qu
 ## Tech stack:
 
 - Azure
-- Azure-database-for-mariadb
+- Azure-database-for-mysql flexible server
 - Container Apps / Managed Environments
 - Azure Storage
 - Azure Key Vault

@@ -3,94 +3,156 @@ param tags object = {}
 param containerAppName string
 param wordpressFqdn string
 param infraSnetId string
-param logAnalytics object 
+param logAnalyticsWorkspaceResourceId string 
 param storageAccountName string 
-@secure()
-param storageAccountKey string
 param storageShareName string 
 param dbHost string
-param dbUser string
 @secure()
 param dbPassword string
 param redisDeploymentOption string = 'container'
-param redisManagedFqdn string = ''
-@secure()
-param redisManagedPassword string = ''
+param managedRedisName string
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
+// Existing resources
+resource managedRedis 'Microsoft.Cache/redis@2024-11-01' existing = {
+  name: managedRedisName
+}
+
+//Database connection details
+var dbUser = 'mariaDBAdmin'
 var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
 var dbName = 'wordpress'
 
-var redisHostSecret = (redisDeploymentOption == 'container') ? redisContainer.properties.configuration.ingress.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : redisManagedFqdn
-var redisPassword = (redisDeploymentOption == 'managed') ? redisManagedPassword : 'null'
+//Redis connection details
+var redisHost = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : managedRedis.properties.hostName
+var redisPassword = (redisDeploymentOption == 'managed') ? managedRedis.listKeys().primaryKey : 'null'
 
-module environment 'modules/containerappsEnvironment.module.bicep' = {
+//Container Apps Environment details
+var workloadProfileName = 'default'
+var envName = 'app-container-env'
+
+@description('The Azure Container Apps (ACA) cluster.')
+module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.8.1' = {
   name: 'containerAppEnv-deployement'
   params: {
-    tags: tags
-    infraSnetId: infraSnetId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    name: envName
     location: location
-    logAnalytics: logAnalytics
-    storageAccountKey: storageAccountKey
-    storageAccountName: storageAccountName
-    storageShareName: storageShareName
+    tags: tags
+    internal: true
+    infrastructureSubnetId: infraSnetId
+    workloadProfiles: [
+      {
+        maximumCount: 3
+        minimumCount: 0
+        name: workloadProfileName
+        workloadProfileType: 'D4'
+      }
+    ]
+    storages: [
+      {
+        accessMode: 'ReadWrite'
+        kind: 'SMB'
+        shareName: storageShareName
+        storageAccountName: storageAccountName
+      }
+    ]
+    zoneRedundant: false
   }
 }
 
-resource redisContainer 'Microsoft.App/containerApps@2022-10-01' = if (redisDeploymentOption == 'container') {
-  name: '${containerAppName}redis'
-  location: location
-  tags: tags
-  properties: {
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 6379
-        exposedPort: 6379
-        transport: 'tcp'
-      }
-    }
-    environmentId: environment.outputs.containerEnvId
-    template: {
-      containers: [
-        {
-          args: []
-          command: []
-          env: []
-          image: 'redis:latest'
-          name: 'redis'
-          probes: []
-          resources: {
-            cpu: json('1.0')
-            memory: '2.0Gi'
-          }
-          volumeMounts: []
+module redisContainer 'br/public:avm/res/app/container-app:0.11.0'  = if (redisDeploymentOption == 'container') {
+  name: 'redis-deployment'
+  params: {
+    name: '${containerAppName}redis'
+    location: location
+    tags: tags
+    environmentResourceId: containerAppsEnvironment.outputs.resourceId
+    containers:[
+      {
+        args: []
+        command: []
+        env: []
+        image: 'redis:latest'
+        name: 'redis'
+        probes: []
+        resources: {
+          cpu: json('1.0')
+          memory: '2.0Gi'
         }
-      ]
-      scale: {
-        minReplicas: 1
+        volumeMounts: []
       }
-      volumes:[]
-    }
+    ]
+    activeRevisionsMode: 'Single'
+    ingressExternal: true
+    ingressTargetPort: 6379
+    ingressTransport: 'tcp'
+    exposedPort: 6379
+    scaleMinReplicas: 1
+    workloadProfileName: workloadProfileName
   }
 }
 
-resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
-  name: '${containerAppName}web'
-  location: location
-  tags: tags
-  properties: {
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        allowInsecure: true
-        external: true
-        targetPort: 80
-        transport: 'auto'
+module wordpressApp 'br/public:avm/res/app/container-app:0.11.0' = {
+  name: 'wordpress-deployment'
+  params: {
+    name: '${containerAppName}web'
+    containers: [
+      {
+        args: []
+        command: []
+        env: [
+          {
+            name: 'DB_HOST'
+            secretRef: 'db-host'
+          }
+          {
+            name: 'DB_USER'
+            secretRef: 'db-user'
+          }
+          {
+            name: 'DB_NAME'
+            secretRef: 'db-name'
+          }
+          {
+            name: 'DB_PASS'
+            secretRef: 'db-pass'
+          }
+          {
+            name: 'DB_PORT'
+            secretRef: 'db-port'
+          }
+          {
+            name: 'WP_FQDN'
+            secretRef: 'wp-fqdn'
+          }
+          { 
+            name: 'REDIS_HOST'
+            secretRef: 'redis-host'
+          }
+          { 
+            name: 'REDIS_PASSWORD'
+            secretRef: 'redis-password'
+          }
+        ]
+        image: wordpressImage
+        name: 'wordpress'
+        probes: []
+        resources: {
+          cpu: json('2.0')
+          memory: '4.0Gi'
+        }
+        volumeMounts: [
+          {
+            mountPath: '/home'
+            volumeName: volumename
+          }
+        ]
       }
-      secrets: [
+    ]
+    secrets: {
+      secureList: [
         {
           name: 'db-host'
           value: dbHost
@@ -117,7 +179,7 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
         }
         { 
           name: 'redis-host'
-          value: redisHostSecret
+          value: redisHost
         }
         { 
           name: 'redis-password'
@@ -125,77 +187,26 @@ resource wordpressApp 'Microsoft.App/containerApps@2022-10-01' = {
         }
       ]
     }
-    environmentId: environment.outputs.containerEnvId
-    template: {
-      containers: [
-        {
-          args: []
-          command: []
-          env: [
-            {
-              name: 'DB_HOST'
-              secretRef: 'db-host'
-            }
-            {
-              name: 'DB_USER'
-              secretRef: 'db-user'
-            }
-            {
-              name: 'DB_NAME'
-              secretRef: 'db-name'
-            }
-            {
-              name: 'DB_PASS'
-              secretRef: 'db-pass'
-            }
-            {
-              name: 'DB_PORT'
-              secretRef: 'db-port'
-            }
-            {
-              name: 'WP_FQDN'
-              secretRef: 'wp-fqdn'
-            }
-            { 
-              name: 'REDIS_HOST'
-              secretRef: 'redis-host'
-            }
-            { 
-              name: 'REDIS_PASSWORD'
-              secretRef: 'redis-password'
-            }
-          ]
-          image: wordpressImage
-          name: 'wordpress'
-          probes: []
-          resources: {
-            cpu: json('2.0')
-            memory: '4.0Gi'
-          }
-          volumeMounts: [
-            {
-              mountPath: '/home'
-              volumeName: volumename
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 1
+    activeRevisionsMode: 'Single'
+    environmentResourceId: containerAppsEnvironment.outputs.resourceId
+    ingressAllowInsecure: true
+    ingressExternal: true
+    ingressTargetPort: 80
+    ingressTransport: 'auto'
+    scaleMinReplicas: 1
+    workloadProfileName: workloadProfileName
+    volumes: [
+      {
+        name: volumename
+        storageName: storageShareName
+        storageType: 'AzureFile'
       }
-      volumes:[
-        {
-          name: volumename
-          storageName: environment.outputs.webStorageName
-          storageType: 'AzureFile'
-        }
-      ]
-    }
+    ]
   }
 }
 
-output webFqdn string = wordpressApp.properties.configuration.ingress.fqdn
-output redisFqdn string = (redisDeploymentOption == 'container') ? redisContainer.properties.configuration.ingress.fqdn : ''
-output webLatestRevisionName string = wordpressApp.properties.latestRevisionName
-output envSuffix string = environment.outputs.envSuffix
-output loadBalancerIP string = environment.outputs.loadBalancerIP
+
+output webFqdn string = wordpressApp.outputs.fqdn
+output redisFqdn string = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : ''
+output envSuffix string = containerAppsEnvironment.outputs.defaultDomain
+output loadBalancerIP string = containerAppsEnvironment.outputs.staticIp

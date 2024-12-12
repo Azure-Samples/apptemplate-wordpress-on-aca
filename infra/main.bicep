@@ -31,10 +31,10 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 param environmentName string
-@description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
-param useCertificate bool = false
+@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of the Application Gateway service.')
+param base64certificateText string
 @description('Whether to deploy the jump host or not')
-param deployJumpHost bool = true
+param deployJumpHost bool
 param tags object = { 'azd-env-name': environmentName }
 @description('The image to use for the wordpress container. Default is kpantos/wordpress-alpine-php:latest')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
@@ -63,26 +63,31 @@ var defaultTags = union({
   applicationName: applicationName
 }, tags)
 
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: 'rg-${applicationName}'
-  location: location
-  tags: defaultTags
+var rgName = 'rg-${applicationName}'
+
+module rg 'br/public:avm/res/resources/resource-group:0.4.0'= {
+  name: 'ResourceGroupDeployment'
+  params: {
+    location: location
+    tags: defaultTags
+    name: rgName
+  }
 }
 
 module naming 'modules/naming.module.bicep' = {
-  scope: resourceGroup(rg.name)
+  scope: resourceGroup(rgName)
   name: 'NamingDeployment'  
   params: {
     suffix: [
       applicationName
     ]
     uniqueLength: 6
-    uniqueSeed: rg.id
+    uniqueSeed: rg.outputs.resourceId
   }
 }
 
 module main 'resources.bicep' = {
-  scope: resourceGroup(rg.name)
+  scope: resourceGroup(rgName)
   name: 'MainDeployment'
   params: {
     location: location
@@ -91,7 +96,7 @@ module main 'resources.bicep' = {
     applicationName: applicationName
     mariaDBPassword: mariaDBPassword
     wordpressFqdn: fqdn
-    useCertificate: useCertificate
+    base64certificateText: base64certificateText
     deployJumpHost: deployJumpHost
     adminUsername: adminUsername
     adminPassword: adminPassword
@@ -104,7 +109,8 @@ module main 'resources.bicep' = {
 //  Deployment Telemetry
 @description('Enable usage and telemetry feedback to Microsoft.')
 param enableTelemetry bool = true
-var telemetryId = '69ef933a-eff0-450b-8a46-331cf62e160f-wordpress-${location}'
+var telemetryId = '69ef933a-eff0-450b-8a46-331cf62e160f-wordpress'
+#disable-next-line no-deployments-resources
 resource telemetrydeployment 'Microsoft.Resources/deployments@2021-04-01' = if (enableTelemetry) {
   name: telemetryId
   location: location
@@ -119,7 +125,7 @@ resource telemetrydeployment 'Microsoft.Resources/deployments@2021-04-01' = if (
 }
 
 //  Outputs
-output AZURE_RESOURCE_GROUP string = rg.name
+output AZURE_RESOURCE_GROUP string = rg.outputs.name
 output AZD_PIPELINE_PROVIDER string = 'github'
 output AZURE_ENV_NAME string = environmentName
 output AZURE_LOCATION string = location

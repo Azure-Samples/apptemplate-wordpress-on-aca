@@ -12,8 +12,8 @@ param location string
 param mariaDBAdmin string = 'db_admin'
 @secure()
 param mariaDBPassword string
-@description('Whether to use a custom SSL certificate or not. If set to true, the certificate must be provided in the path cert/certificate.pfx.')
-param useCertificate bool = false
+@description('The base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
+param base64certificateText string
 @description('Whether to deploy the jump host or not')
 param deployJumpHost bool = false
 param adminUsername string = 'hostadmin'
@@ -26,13 +26,11 @@ param redisDeploymentOption string = 'container'
 @description('The wordpress container image to use.')
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
-@description('The path to the base64 encoded SSL certificate file in PFX format to be stored in Key Vault. CN and SAN must match the custom hostname of API Management Service.')
-var sslCertPath = 'cert/certificate.pfx'
 var resourceNames = {
   storageAccount: naming.storageAccount.nameUnique
   keyVault: naming.keyVault.name
   redis: naming.redisCache.name
-  mariadb: naming.mariadbDatabase.name
+  mariadb: '${applicationName}db'
   containerAppName: 'wordpress'
   applicationGateway: naming.applicationGateway.name
 }
@@ -41,23 +39,25 @@ var secretNames = {
   storageKey: 'storageKey'
   certificateKeyName: 'certificateName'
   redisConnectionString: 'redisConnectionString'
-  mariaDBPassword: 'mariaDBPassword'
   redisPrimaryKeyKeyName: 'redisPrimaryKey'
   redisPasswordName: 'redisPassword'
 }
-
+var storagePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var mariadbPrivateDnsZoneName = 'privatelink.mysql.database.azure.com'
+var storageShare = 'smbfileshare'
 
 //1. Networking
 module network 'network.bicep' = {
-  name: 'vnet-deployment'
+  name: 'network-deployment'
   params: {
     location: location
     tags: tags
     naming: naming
   }
 }
+
 //Log Analytics - App insights
-module logAnalytics 'modules/appInsights.module.bicep' = {
+module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = {
   name: 'loganalytics-deployment'
   params: {
     location: location
@@ -65,138 +65,171 @@ module logAnalytics 'modules/appInsights.module.bicep' = {
     name: applicationName
   }
 }
-
+module appInsights 'br/public:avm/res/insights/component:0.4.2' = {
+  name: 'appInsights-deployment'
+  params: {
+    location: location
+    tags: tags
+    name: applicationName
+    workspaceResourceId: logAnalytics.outputs.resourceId
+    applicationType: 'web'
+    kind: 'web'
+  }
+}
 //2. Storage
-module storage 'modules/storage.module.bicep' = {
+module storage 'br/public:avm/res/storage/storage-account:0.14.3' = {
   name: 'storage-deployment'
-  dependsOn:[keyVault]
   params: {
     location: location
     kind: 'StorageV2'
     skuName: 'Standard_LRS'
     name: resourceNames.storageAccount
-    secretNames: secretNames
-    keyVaultName: resourceNames.keyVault
+    secretsExportConfiguration: {
+      keyVaultResourceId: keyVault.outputs.resourceId
+      accessKey1: secretNames.storageKey
+    }
+    fileServices: {
+      shares: [
+        {
+          enabledProtocols: 'SMB'
+          name: storageShare
+        }
+      ]
+    }
+    privateEndpoints: [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: storagePrivateDnsZone.outputs.resourceId
+            }
+          ]
+        }
+        service: 'file'
+        subnetResourceId: network.outputs.storageSnetResourceId
+      }
+    ]
     tags: tags
   }
 }
-
-module storagePrivateDnsZone 'modules/privateDnsZone.module.bicep'={
+module storagePrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = {
   name: 'storagePrivateDnsZone-deployment'
   params: {
-    name: 'stgprivatednszone'
-    #disable-next-line no-hardcoded-env-urls
-    zone: 'privatelink.file.core.windows.net'
-    vnetIds: [
-      network.outputs.vnetId
-    ] 
+    location: 'global'
+    name: storagePrivateDnsZoneName
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: network.outputs.vnetResourceId
+      }
+    ]
   }
-}
-module storagePrivateEndpoint 'modules/privateEndpoint.module.bicep' = {
-  name: 'storagePrivateEndpoint-deployment'
-  params: {
-    location: location
-    name: 'pe-${resourceNames.storageAccount}'
-    tags: tags
-    privateDnsZoneId: storagePrivateDnsZone.outputs.id
-    privateLinkServiceId: storage.outputs.id
-    subnetId: network.outputs.storageSnetId
-    subResource: 'file'
-  }  
 }
 
 //3. Database
-module mariaDB 'modules/mariaDB.module.bicep' = {
+module mariadb 'br/public:avm/res/db-for-my-sql/flexible-server:0.4.1' = {
   name: 'mariaDB-deployment'
   params: {
-    dbPassword: mariaDBPassword
-    location: location
-    serverName: resourceNames.mariadb
-    tags: tags
+    // Required parameters
+    name: resourceNames.mariadb
+    skuName: 'Standard_D2ds_v4'
+    tier: 'GeneralPurpose'
+    // Non-required parameters
     administratorLogin: mariaDBAdmin
-    useFlexibleServer: false
+    administratorLoginPassword: mariaDBPassword
+    location: location
+    storageAutoGrow: 'Enabled'
+    delegatedSubnetResourceId: network.outputs.mariaDbSnetResourceId
+    privateDnsZoneResourceId: mariaDbPrivateDnsZone.outputs.resourceId
+    databases: [
+      {
+        charset: 'utf8'
+        collation: 'utf8_general_ci'
+        name: 'wordpress'
+      }
+    ]
   }
 }
 
-module mariaDbPrivateDnsZone 'modules/privateDnsZone.module.bicep'={
-  name: 'mariaDbPrivateDnsZone-deployment'
-  params: {
-    name: 'mariadbprivatednszone'
-    zone: 'privatelink.mariadb.database.azure.com'
-    vnetIds: [
-      network.outputs.vnetId
-    ] 
+resource mariadbSecureConnection 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-12-30' = {
+  name: '${resourceNames.mariadb}/require_secure_transport'
+  dependsOn: [
+    mariadb
+  ]
+  properties: {
+    value: 'OFF'
+    source: 'user-override'
   }
 }
-module mariaDbPrivateEndpoint 'modules/privateEndpoint.module.bicep' = {
-  name: 'mariaDbPrivateEndpoint-deployment'
+
+module mariaDbPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' ={
+  name: 'mariaDbPrivateDnsZone-deployment'
   params: {
-    location: location
-    name: 'pe-${resourceNames.mariadb}'
-    tags: tags
-    privateDnsZoneId: mariaDbPrivateDnsZone.outputs.id
-    privateLinkServiceId: mariaDB.outputs.id
-    subnetId: network.outputs.mariaDbSnetId
-    subResource: 'mariadbServer'
-  }  
+    name: mariadbPrivateDnsZoneName
+    location: 'global'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: network.outputs.vnetResourceId
+      }
+    ]
+  }
 }
 
 //4. Redis
-module redis 'modules/redis.module.bicep' = if (redisDeploymentOption == 'managed') {
+module redis 'br/public:avm/res/cache/redis:0.8.0' = if (redisDeploymentOption == 'managed') {
   name: 'redis-deployment'
   params: {
     location: location
     name: resourceNames.redis
     tags: tags
     skuName: 'Premium'
-    skuFamily: 'P'
-    skuCapacity: 1
-    keyVaultName: vault.name
-    publicNetworkAccess: 'Disabled'
-    saveKeysToVault: (redisDeploymentOption == 'managed')
-    connStrKeyName: secretNames.redisConnectionString    
-    passwordKeyName: secretNames.redisPasswordName
-    primaryKeyKeyName: secretNames.redisPrimaryKeyKeyName
-  }
-}
-
-module redisPrivateDnsZone 'modules/privateDnsZone.module.bicep'= if (redisDeploymentOption == 'managed') {
-  name: 'redisPrivateDnsZone-deployment'
-  params: {
-    name: 'redisprivatednszone'
-    zone: 'privatelink.redis.cache.windows.net'
-    vnetIds: [
-      network.outputs.vnetId
+    capacity: 1
+    publicNetworkAccess: 'Disabled' 
+    privateEndpoints: [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: redisPrivateDnsZone.outputs.resourceId
+            }
+          ]
+        }
+        subnetResourceId: network.outputs.redisSnetResourceId
+      }
     ]
   }
 }
-module redisPrivateEndpoint 'modules/privateEndpoint.module.bicep' = if (redisDeploymentOption == 'managed') {
-  name: 'redisPrivateEndpoint-deployment'
+
+module redisPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = if (redisDeploymentOption == 'managed') {
+  name: 'redisPrivateDnsZone-deployment'
   params: {
-    location: location
-    name: 'pe-${resourceNames.redis}'
-    tags: tags
-    privateDnsZoneId: (redisDeploymentOption == 'managed')? redisPrivateDnsZone.outputs.id : ''
-    privateLinkServiceId: (redisDeploymentOption == 'managed')? redis.outputs.id : ''
-    subnetId: network.outputs.redisSnetId
-    subResource: 'redisCache'
+    location: 'global'
+    name: 'privatelink.redis.cache.windows.net'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: network.outputs.vnetResourceId
+      }
+    ]
   }
 }
 
 //4. Keyvault
-module keyVault 'modules/keyvault.module.bicep' ={
+module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   name: 'keyVault-deployment'
   params: {
     name: resourceNames.keyVault
     location: location
-    skuName: 'premium'
+    sku: 'premium'
     tags: tags
-    secrets: [
+    secrets: (!empty(base64certificateText)) ? [
       {
-        name: secretNames.mariaDBPassword
-        value: mariaDBPassword
+        name: secretNames.certificateKeyName
+        value: base64certificateText
+        contentType: 'application/x-pkcs12'
+        attributes: {
+          enabled: true
+        }
       }
-    ]
+    ] : []
     accessPolicies: (!empty(principalId))? [
       {
         objectId: principalId
@@ -208,74 +241,55 @@ module keyVault 'modules/keyvault.module.bicep' ={
         }
       }
     ] : []
-  }  
-}
-
-resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (useCertificate) {
-  parent: vault
-  name: secretNames.certificateKeyName
-  dependsOn: [
-    keyVault
-  ]
-  properties: {
-    value: loadFileAsBase64(sslCertPath)
-    contentType: 'application/x-pkcs12'
-    attributes: {
-      enabled: true
-    }
   }
 }
 
 //5. Container Apps
-//Get a reference to key vault
-resource vault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: resourceNames.keyVault
-}
 module wordpressapp 'containerapp.bicep' = {
   name: 'wordpressapp-deployment'
   dependsOn:[
-    keyVault
     storage
-    mariaDB
-    logAnalytics
   ]
   params: {
     tags: tags
     location: location    
     containerAppName: resourceNames.containerAppName
     wordpressFqdn: wordpressFqdn
-    infraSnetId: network.outputs.infraSnetId
-    logAnalytics: logAnalytics.outputs.logAnalytics
+    infraSnetId: network.outputs.infraSnetResourceId
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
     storageAccountName: resourceNames.storageAccount
-    storageAccountKey: vault.getSecret(secretNames.storageKey)
-    storageShareName: storage.outputs.fileshareName
-    dbHost: mariaDB.outputs.hostname
-    dbUser: mariaDBAdmin
-    dbPassword: vault.getSecret(secretNames.mariaDBPassword)
+    storageShareName: storageShare
+    dbHost: mariadb.outputs.fqdn
+    dbPassword: mariaDBPassword
     redisDeploymentOption: redisDeploymentOption
-    redisManagedFqdn: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? redis.outputs.redisHost : ''
-    redisManagedPassword: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? vault.getSecret(secretNames.redisPasswordName) : ''
+    managedRedisName: (redisDeploymentOption == 'managed') ? redis.outputs.name : ''
     wordpressImage: wordpressImage
   }
 }
 
 //7. DNS Zone for created endpoint
-module envdnszone 'modules/privateDnsZone.module.bicep' = {
+module envdnszone 'br/public:avm/res/network/private-dns-zone:0.6.0' = {
   name: 'envdnszone-deployment'
   params: {
-    name: 'appenvdnszone'
-    zone: wordpressapp.outputs.envSuffix
-    vnetIds: [
-      network.outputs.vnetId
+    name: wordpressapp.outputs.envSuffix
+    location: 'global'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: network.outputs.vnetResourceId
+      }
     ]
-    aRecords: [
+    a: [
       {
         name: '*'
-        ipv4Address: wordpressapp.outputs.loadBalancerIP
+        aRecords: [
+          {
+            ipv4Address: wordpressapp.outputs.loadBalancerIP
+          }
+        ]
+        ttl: 60
       }
     ]
     tags: tags
-    registrationEnabled: false
   }
 }
 
@@ -284,18 +298,17 @@ module agw 'applicationGateway.bicep' = {
   name: 'applicationGateway-deployment'
   dependsOn: [
     keyVault
-    wordpressapp
     envdnszone
   ]
   params: {
     name: resourceNames.applicationGateway
     location: location
-    subnetId: network.outputs.agwSnetId
+    subnetId: network.outputs.agwSnetResourceId
     backendFqdn: wordpressapp.outputs.webFqdn
     appGatewayFQDN: wordpressFqdn
     keyVaultName: resourceNames.keyVault
-    certificateKeyName: (useCertificate)? secretNames.certificateKeyName : ''
-    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    certificateKeyName: (!empty(base64certificateText))? secretNames.certificateKeyName : ''
+    logAnalyticsWorkspaceId: logAnalytics.outputs.resourceId
     tags: tags
   }
 }
@@ -303,8 +316,7 @@ module agw 'applicationGateway.bicep' = {
 module jumphost 'jumphost.bicep' = if (deployJumpHost) {
   name: 'jumphost-deployment'
   params: {
-    naming: naming
-    subnetId: network.outputs.appSnetId
+    subnetId: network.outputs.appSnetResourceId
     location: location
     tags: tags
     adminUsername: adminUsername

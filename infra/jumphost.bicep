@@ -1,10 +1,11 @@
-param naming object
 param location string = resourceGroup().location
 param tags object = {}
 param subnetId string
 param adminUsername string = 'hostadmin'
 @secure()
 param adminPassword string = ''
+@description('Required. Specifies the size for the VMs. Default is Standard_F4s_v2.')
+param vmSize string = 'Standard_F4s_v2'
 
 var resourceNames = {
   nicName: 'jumphost-nic'
@@ -12,77 +13,50 @@ var resourceNames = {
   vmName: 'jumphost'
 }
 
-resource jumphostnic 'Microsoft.Network/networkInterfaces@2022-07-01' = {
-  name: resourceNames.nicName
-  location: location
-  properties: {
-    ipConfigurations: [
+module jumphost 'br/public:avm/res/compute/virtual-machine:0.10.1' = {
+  name: 'vm-deployment'
+  params: {
+    name: resourceNames.vmName
+    location: location
+    tags: tags
+    adminUsername: adminUsername
+    adminPassword: adminPassword
+    provisionVMAgent: true
+    enableAutomaticUpdates: true
+    patchMode: 'AutomaticByOS'
+    patchAssessmentMode: 'ImageDefault'
+    enableHotpatching: false
+    bootDiagnostics: true
+    computerName: resourceNames.vmName
+    encryptionAtHost: false
+    vmSize: vmSize
+    zone: 1
+    osDisk:{
+      managedDisk: {
+        storageAccountType: 'Standard_LRS'
+      }
+      caching: 'ReadWrite'
+      diskSizeGB: 128
+      createOption: 'FromImage'
+    }
+    osType: 'Windows'
+    imageReference: {
+      publisher: 'MicrosoftWindowsDesktop'
+      offer: 'Windows-10'
+      sku: 'win10-21h2-pro'
+      version: 'latest'
+    }
+    nicConfigurations: [
       {
-        name: resourceNames.ipConfigurationName
-        properties: {
-          subnet: {
-            id: subnetId
+        ipConfigurations: [
+          {
+            name: resourceNames.ipConfigurationName
+            subnetResourceId: subnetId
           }
-          privateIPAllocationMethod: 'Dynamic'
-        }
+        ]
+        nicSuffix: '-nic-01'
       }
+
     ]
-  }
-}
-
-
-resource jumphost 'Microsoft.Compute/virtualMachines@2022-08-01' = {
-  name: resourceNames.vmName
-  location: location
-  tags: tags
-  properties: {
-    hardwareProfile: {
-      vmSize: 'Standard_F4s_v2'
-    }
-    storageProfile: {
-      imageReference: {
-        publisher: 'MicrosoftWindowsDesktop'
-        offer: 'Windows-10'
-        sku: 'win10-21h2-pro'
-        version: 'latest'
-      }
-      osDisk: {
-        osType: 'Windows'
-        createOption: 'FromImage'
-        managedDisk: {
-          storageAccountType: 'Standard_LRS'
-        }
-      }
-    }
-    osProfile: {
-      computerName: resourceNames.vmName
-      adminUsername: adminUsername
-      adminPassword: adminPassword
-      windowsConfiguration: {
-        provisionVMAgent: true
-        enableAutomaticUpdates: true
-        patchSettings: {
-          patchMode: 'AutomaticByOS'
-          assessmentMode: 'ImageDefault'
-          enableHotpatching: false
-        }
-        enableVMAgentPlatformUpdates: true
-      }
-    }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          id: jumphostnic.id
-          properties: {
-            deleteOption: 'Delete'
-          }
-        }
-      ]
-    }
-    diagnosticsProfile: {
-      bootDiagnostics: {
-        enabled: true
-      }
-    }
   }
 }
