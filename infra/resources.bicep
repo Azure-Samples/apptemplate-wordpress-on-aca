@@ -39,7 +39,6 @@ var secretNames = {
   storageKey: 'storageKey'
   certificateKeyName: 'certificateName'
   redisConnectionString: 'redisConnectionString'
-  mariaDBPassword: 'mariaDBPassword'
   redisPrimaryKeyKeyName: 'redisPrimaryKey'
   redisPasswordName: 'redisPassword'
 }
@@ -213,13 +212,6 @@ module redisPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = 
   }
 }
 
-resource existingRedis 'Microsoft.Cache/Redis@2019-07-01' existing = if (redisDeploymentOption == 'managed') {
-  name: resourceNames.redis
-  dependsOn: [
-    redis
-  ]
-}
-
 //4. Keyvault
 module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   name: 'keyVault-deployment'
@@ -228,29 +220,16 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
     location: location
     sku: 'premium'
     tags: tags
-    secrets: (redisDeploymentOption == 'managed') ? [
+    secrets: (!empty(base64certificateText)) ? [
       {
-        name:secretNames.redisConnectionString
-        value: '${resourceNames.redis}.redis.cache.windows.net,abortConnect=false,ssl=true,password=${existingRedis.listKeys().primaryKey}'
+        name: secretNames.certificateKeyName
+        value: base64certificateText
+        contentType: 'application/x-pkcs12'
+        attributes: {
+          enabled: true
+        }
       }
-      {
-        name: secretNames.redisPrimaryKeyKeyName
-        value: existingRedis.listKeys().primaryKey
-      }
-      {
-        name: secretNames.redisPasswordName
-        value: existingRedis.listKeys().primaryKey
-      }
-      {
-        name: secretNames.mariaDBPassword
-        value: mariaDBPassword
-      }
-    ] :[
-      {
-        name: secretNames.mariaDBPassword
-        value: mariaDBPassword
-      }      
-    ]
+    ] : []
     accessPolicies: (!empty(principalId))? [
       {
         objectId: principalId
@@ -265,33 +244,10 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   }
 }
 
-resource sslCertSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(base64certificateText)) {
-  parent: vault
-  name: secretNames.certificateKeyName
-  dependsOn: [
-    keyVault
-  ]
-  properties: {
-    value: base64certificateText
-    contentType: 'application/x-pkcs12'
-    attributes: {
-      enabled: true
-    }
-  }
-}
-
 //5. Container Apps
-//Get a reference to key vault
-resource vault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: resourceNames.keyVault
-  dependsOn: [
-    keyVault
-  ]
-}
 module wordpressapp 'containerapp.bicep' = {
   name: 'wordpressapp-deployment'
   dependsOn:[
-    keyVault
     storage
   ]
   params: {
@@ -304,11 +260,9 @@ module wordpressapp 'containerapp.bicep' = {
     storageAccountName: resourceNames.storageAccount
     storageShareName: storageShare
     dbHost: mariadb.outputs.fqdn
-    dbUser: mariaDBAdmin
-    dbPassword: vault.getSecret(secretNames.mariaDBPassword)
+    dbPassword: mariaDBPassword
     redisDeploymentOption: redisDeploymentOption
-    redisManagedFqdn: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? redis.outputs.hostName : ''
-    redisManagedPassword: (!empty(redisDeploymentOption) && redisDeploymentOption == 'managed')? vault.getSecret(secretNames.redisPasswordName) : ''
+    managedRedisName: (redisDeploymentOption == 'managed') ? redis.outputs.name : ''
     wordpressImage: wordpressImage
   }
 }

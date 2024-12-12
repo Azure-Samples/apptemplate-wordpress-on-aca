@@ -7,21 +7,28 @@ param logAnalyticsWorkspaceResourceId string
 param storageAccountName string 
 param storageShareName string 
 param dbHost string
-param dbUser string
 @secure()
 param dbPassword string
 param redisDeploymentOption string = 'container'
-param redisManagedFqdn string = ''
-@secure()
-param redisManagedPassword string = ''
+param managedRedisName string
 param wordpressImage string = 'kpantos/wordpress-alpine-php:latest'
 
+// Existing resources
+resource managedRedis 'Microsoft.Cache/redis@2024-11-01' existing = {
+  name: managedRedisName
+}
+
+//Database connection details
+var dbUser = 'mariaDBAdmin'
 var dbPort = '3306'
 var volumename = 'wpstorage' //sensitive to casing and length. It has to be all lowercase.
 var dbName = 'wordpress'
 
-var redisHost = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : redisManagedFqdn
-var redisPassword = (redisDeploymentOption == 'managed') ? redisManagedPassword : 'null'
+//Redis connection details
+var redisHost = (redisDeploymentOption == 'container') ? redisContainer.outputs.fqdn : (redisDeploymentOption == 'local') ? 'localhost' : managedRedis.properties.hostName
+var redisPassword = (redisDeploymentOption == 'managed') ? managedRedis.listKeys().primaryKey : 'null'
+
+//Container Apps Environment details
 var workloadProfileName = 'default'
 var envName = 'app-container-env'
 
