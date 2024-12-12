@@ -4,103 +4,66 @@ name: WordPress Deployment
 on:
   workflow_dispatch:
   push:
+    # Run when commits are pushed to mainline branch
+    # Set this to the mainline branch you are using
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+      - master
 
-  
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Set this permission if you are using a Federated Credential.
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  # The lint job performs linting on the bicep code
-  lint:
-    # The type of runner that the job will run on
+  build:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    # azd build-in variables.
+    # This variables are always set by `azd pipeline config`
+    # You can set them as global env (apply to all steps) or you can add them to individual steps' environment
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      ## Define the additional variables or secrets that are required globally (provision and deploy)
+      adminPassword: ${{ vars.JH_ADMIN_USERNAME }}
+      adminUsername: ${{ secrets.JH_ADMIN_PASSWORD }}
+      applicationName: ${{ vars.AZURE_APPLICATION_NAME }}
+      base64certificateText: ''
+      deployJumpHost: ${{ vars.AZURE_DEPLOY_JUMPHOST }}
+      fqdn: ${{ vars.AZURE_FQDN }}
+      mariaDBPassword: ${{ secrets.MYSQL_PASSWORD }}
+      redisDeploymentOption: ${{ vars.AZURE_REDIS_DEPLOYMENTOPTIONS }}
+    
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # Runs the Bicep linter to ensure build is successful
-      - name: Run Bicep linter
-        run: az bicep build --file ./infra/main.bicep
+      # using the install-azd action
+      - name: Install azd
+        uses: Azure/setup-azd@v1.0.0
 
-  validate:
-    runs-on: ubuntu-latest
-    needs: [lint]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: azure/login@v1
-        name: Sign in to Azure
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: azure/arm-deploy@v1.0.9
-        name: Run preflight validation
-        with:
-          deploymentName: ${{ github.run_number }}
-          scope: subscription
-          region: ${{ vars.AZURE_LOCATION }}
-          template: ./infra/main.bicep
-          parameters: environmentName=${{ vars.AZURE_ENV_NAME }} 
-            location=${{ vars.AZURE_LOCATION }} 
-            fqdn=${{ vars.AZURE_FQDN }} 
-            applicationName=${{ vars.AZURE_APPLICATION_NAME }} 
-            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} 
-            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} 
-            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} 
-            redisDeploymentOption=${{ vars.AZURE_REDIS_DEPLOYMENTOPTIONS }}
-          deploymentMode: Validate
+      # # If you want to use azd-daily build, or install it from a PR, you can remove previous step and
+      # # use the next one:
+      # - name: Install azd - daily or from PR
+      #  # Update this scrip based on the OS - pool of your pipeline. This example is for a linux pipeline installing daily build
+      #  run: curl -fsSL https://aka.ms/install-azd.sh | bash -s -- --version daily
+      #  shell: pwsh
 
-  preview:
-    runs-on: ubuntu-latest
-    needs: [lint, validate]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: azure/login@v1
-        name: Sign in to Azure
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: Azure/cli@v1
-        name: Run what-if
-        with:
-          azcliversion: 2.45.0
-          inlineScript: |
-            az deployment sub what-if \
-              --location ${{ vars.AZURE_LOCATION }} \
-              --template-file ./infra/main.bicep \
-              --parameters environmentName=${{ vars.AZURE_ENV_NAME }} \
-              --parameters location=${{ vars.AZURE_LOCATION }} \
-              --parameters fqdn=${{ vars.AZURE_FQDN }} \
-              --parameters applicationName=${{ vars.AZURE_APPLICATION_NAME }} \
-              --parameters mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} \
-              --parameters adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} \
-              --parameters adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} \
-              --parameters redisDeploymentOption=${{ vars.AZURE_REDIS_DEPLOYMENTOPTIONS }}
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [preview]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: azure/login@v1
-        name: Sign in to Azure
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: azure/arm-deploy@v1.0.9
-        id: deployment
-        name: Deployment
-        with:
-          deploymentName: "GitHubAction-${{ github.run_number }}"
-          scope: subscription
-          region: ${{ vars.AZURE_LOCATION }}
-          template: ./infra//main.bicep
-          parameters: environmentName=${{ vars.AZURE_ENV_NAME }}  
-            location=${{ vars.AZURE_LOCATION }} 
-            fqdn=${{ vars.AZURE_FQDN }} 
-            applicationName=${{ vars.AZURE_APPLICATION_NAME }} 
-            mariaDBPassword=${{ secrets.AZURE_MARIADB_PASSWORD }} 
-            adminUsername=${{ vars.AZURE_ADMIN_USERNAME }} 
-            adminPassword=${{ secrets.AZURE_ADMIN_PASSWORD }} 
-            redisDeploymentOption=${{ vars.AZURE_REDIS_DEPLOYMENTOPTIONS }}
-          failOnStdErr: false
+      # azd set up Federated Credential by default. You can remove this step if you are using Client Credentials
+      - name: Log in with Azure (Federated Credentials)
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        run: |
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
+        shell: pwsh
+
+      - name: Provision Infrastructure
+        run: azd up --no-prompt
+
+      - name: Tear Down Infrastructure
+        run: azd down --no-prompt
