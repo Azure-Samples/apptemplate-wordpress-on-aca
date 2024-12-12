@@ -32,14 +32,6 @@ jobs:
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       ## Define the additional variables or secrets that are required globally (provision and deploy)
-      adminPassword: ${{ vars.JH_ADMIN_USERNAME }}
-      adminUsername: ${{ secrets.JH_ADMIN_PASSWORD }}
-      applicationName: ${{ vars.AZURE_APPLICATION_NAME }}
-      base64certificateText: ''
-      deployJumpHost: ${{ vars.AZURE_DEPLOY_JUMPHOST }}
-      fqdn: ${{ vars.AZURE_FQDN }}
-      mariaDBPassword: ${{ secrets.MYSQL_PASSWORD }}
-      redisDeploymentOption: ${{ vars.AZURE_REDIS_DEPLOYMENTOPTIONS }}
     
     steps:
       - name: Checkout
