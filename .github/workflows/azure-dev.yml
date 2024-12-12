@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  Test:
     runs-on: ubuntu-latest
     # azd build-in variables.
     # This variables are always set by `azd pipeline config`
@@ -25,6 +25,8 @@ jobs:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      # This env var is required only by the first step that uses azd (provision, up, deploy, etc) to create the env config
+      AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       ## Define the additional variables or secrets that are required globally (provision and deploy)
