@@ -220,6 +220,8 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
     location: location
     sku: 'premium'
     tags: tags
+    enablePurgeProtection: false
+    enableSoftDelete: false
     secrets: (!empty(base64certificateText)) ? [
       {
         name: secretNames.certificateKeyName
