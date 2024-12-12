@@ -153,6 +153,9 @@ module mariadb 'br/public:avm/res/db-for-my-sql/flexible-server:0.4.1' = {
 
 resource mariadbSecureConnection 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-12-30' = {
   name: '${resourceNames.mariadb}/require_secure_transport'
+  dependsOn: [
+    mariadb
+  ]
   properties: {
     value: 'OFF'
     source: 'user-override'
