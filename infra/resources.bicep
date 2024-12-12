@@ -215,6 +215,9 @@ module redisPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.6.0' = 
 
 resource existingRedis 'Microsoft.Cache/Redis@2019-07-01' existing = if (redisDeploymentOption == 'managed') {
   name: resourceNames.redis
+  dependsOn: [
+    redis
+  ]
 }
 
 //4. Keyvault
