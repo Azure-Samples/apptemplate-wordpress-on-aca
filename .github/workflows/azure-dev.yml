@@ -39,7 +39,7 @@ jobs:
 
       # using the install-azd action
       - name: Install azd
-        uses: Azure/setup-azd@v1.0.0
+        uses: Azure/setup-azd@v2.0.0
 
       # # If you want to use azd-daily build, or install it from a PR, you can remove previous step and
       # # use the next one:
